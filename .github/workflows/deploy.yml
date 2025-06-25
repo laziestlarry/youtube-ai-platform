@@ -1,0 +1,122 @@
+name: Build and Deploy to Cloud Run
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION: us-central1
+  GAR_LOCATION: us-central1 # Google Artifact Registry location
+  API_SERVICE_NAME: youtube-ai-platform
+  MINI_APP_SERVICE_NAME: youtube-ai-platform-mini-app
+  WORKER_SERVICE_NAME: youtube-ai-platform-worker
+  IMAGE_NAME: youtube-ai-platform # The name for the container image
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      id: auth
+      uses: 'google-github-actions/auth@v2'
+      with:
+        workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+        service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+    - name: Set up Cloud SDK
+      uses: 'google-github-actions/setup-gcloud@v2'
+
+    - name: Configure Docker
+      run: gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev
+
+    - name: Build and Push API Docker image
+      run: |-
+        docker build -f Dockerfile.api -t ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/api:latest .
+        docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/api:latest
+
+    - name: Build and Push Worker Docker image
+      run: |-
+        docker build -f Dockerfile.worker -t ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/worker:latest .
+        docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/worker:latest
+
+    - name: Build and Push Mini-App Docker image
+      run: |-
+        docker build -f Dockerfile.mini_app -t ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/mini-app:latest .
+        docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/mini-app:latest
+
+    - name: Deploy Worker Service
+      id: deploy-worker
+      uses: google-github-actions/deploy-cloudrun@v2
+      with:
+        service: ${{ env.WORKER_SERVICE_NAME }}
+        region: ${{ env.GCP_REGION }}
+        image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/worker:latest
+        no_allow_unauthenticated: true
+        service_account: ${{ secrets.WORKER_SERVICE_ACCOUNT_EMAIL }} # e.g., worker-service-sa@...
+        env_vars: |
+          APP_MODE=worker
+          GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}
+        secrets: |
+          DATABASE_URL=DATABASE_URL:latest
+          GCS_BUCKET_NAME=GCS_BUCKET_NAME:latest
+          GEMINI_API_KEY=GEMINI_API_KEY:latest
+          SERPER_API_KEY=SERPER_API_KEY:latest
+
+    - name: Deploy API Service
+      id: deploy-api
+      uses: google-github-actions/deploy-cloudrun@v2
+      with:
+        service: ${{ env.API_SERVICE_NAME }}
+        region: ${{ env.GCP_REGION }}
+        image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/api:latest
+        allow_unauthenticated: true
+        service_account: ${{ secrets.API_SERVICE_ACCOUNT_EMAIL }} # e.g., api-service-sa@...
+        env_vars: |
+          APP_MODE=api
+          GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}
+          GCP_REGION=${{ env.GCP_REGION }}
+          WORKER_URL=${{ steps.deploy-worker.outputs.url }}
+          TASK_QUEUE_NAME=${{ secrets.TASK_QUEUE_NAME }}
+          TASK_QUEUE_LOCATION=${{ env.GCP_REGION }}
+          WORKER_SA_EMAIL=${{ secrets.WORKER_SERVICE_ACCOUNT_EMAIL }}
+        secrets: |
+          DATABASE_URL=DATABASE_URL:latest
+          GCS_BUCKET_NAME=GCS_BUCKET_NAME:latest
+          SECRET_KEY=${{ secrets.SECRET_KEY }}
+          GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+          SERPER_API_KEY=SERPER_API_KEY:latest
+
+    - name: Deploy Mini-App Service
+      id: deploy-mini-app
+      uses: google-github-actions/deploy-cloudrun@v2
+      with:
+        service: ${{ env.MINI_APP_SERVICE_NAME }}
+        region: ${{ env.GCP_REGION }}
+        image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/mini-app:latest
+        allow_unauthenticated: true # Mini-app is public facing
+        service_account: ${{ secrets.API_SERVICE_ACCOUNT_EMAIL }} # Or a dedicated SA for mini-app
+        env_vars: |
+          GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}
+          GCP_REGION=${{ env.GCP_REGION }}
+          MAIN_PLATFORM_URL=${{ steps.deploy-api.outputs.url }}
+        secrets: |
+          GEMINI_API_KEY=GEMINI_API_KEY:latest
+          SERPER_API_KEY=SERPER_API_KEY:latest
+
+    - name: Show Output
+      run: |
+        echo "✅ API Service deployed successfully!"
+        echo "   URL: ${{ steps.deploy-api.outputs.url }}"
+        echo "✅ Worker Service deployed successfully!"
+        echo "   URL: ${{ steps.deploy-worker.outputs.url }}"
+        echo "✅ Mini-App Service deployed successfully!"
+        echo "   URL: ${{ steps.deploy-mini-app.outputs.url }}"
