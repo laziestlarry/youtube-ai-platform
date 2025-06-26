@@ -1,1 +1,18 @@
-
+fastapi
+uvicorn
+pydantic-settings
+python-dotenv
+openai>=1.0.0
+httpx
+google-cloud-aiplatform
+sqlalchemy
+pydantic[email]
+passlib[bcrypt]
+python-jose[cryptography]
+python-multipart # For OAuth2PasswordRequestForm
+psycopg2-binary # For PostgreSQL in production
+requests
+click
+ffmpeg-python
+Pillow
+google-cloud-tasks

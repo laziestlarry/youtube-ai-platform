@@ -1,0 +1,16 @@
+# Dockerfile.db_migrate
+FROM python:3.11-slim
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+COPY app/requirements.txt /app/app/requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r /app/app/requirements.txt
+
+COPY app/backend /app/app/backend
+COPY db_migrate.py .
+
+CMD ["python", "db_migrate.py"]

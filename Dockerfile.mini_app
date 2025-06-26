@@ -1,25 +1,3 @@
-# Stage 1: Build the React frontend
-FROM node:18-alpine as frontend-builder
-
-# Set the working directory for the frontend application
-WORKDIR /app/frontend/dev_dashboard
-
-# Copy package.json and yarn.lock first to leverage Docker cache
-# Assuming package.json and yarn.lock are directly in the 'frontend/' directory
-COPY frontend/dev_dashboard/package.json ./
-COPY frontend/dev_dashboard/yarn.lock ./
-
-# Install frontend dependencies
-RUN yarn install --frozen-lockfile
-
-# Copy the rest of the frontend source code
-COPY frontend/dev_dashboard/ ./
-
-# Build the React application
-# This command will generate static assets, typically in a 'build' directory
-RUN yarn build
-
-# Stage 2: Build the Python mini-app and serve the frontend
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -27,23 +5,17 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Install system dependencies (ffmpeg as per DEPLOYMENT.md, curl from existing Dockerfile)
-RUN apt-get update && apt-get install -y ffmpeg curl --no-install-recommends && \
+# Install system dependencies (curl from existing Dockerfile)
+RUN apt-get update && apt-get install -y curl --no-install-recommends && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
+
 # Copy Python application code and requirements
 COPY mini_app/requirements.txt ./mini_app/requirements.txt
-
-# Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r mini_app/requirements.txt
 
 # Copy the mini_app Python code
 COPY mini_app/ ./mini_app/
-
-# Copy built frontend assets from the builder stage into the Python app's static directory for mini_app
-# IMPORTANT: Your mini_app Python service must be configured to serve static files from this path.
-# For example, if using FastAPI, you'd mount StaticFiles(directory="mini_app/static").
-COPY --from=frontend-builder /app/frontend/dev_dashboard/build ./mini_app/static
 
 # Set the entrypoint for the mini-app Python service
 # Align with the existing Dockerfile.mini_app's CMD

@@ -15,13 +15,110 @@ env:
   IMAGE_NAME: youtube-ai-platform # The name for the container image
 
 jobs:
+  build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    strategy:
+      matrix:
+        include:
+          - service: api
+            dockerfile: Dockerfile.api
+          - service: worker
+            dockerfile: Dockerfile.worker
+          - service: mini-app
+            dockerfile: Dockerfile.mini_app
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      id: auth
+      uses: 'google-github-actions/auth@v2'
+      with:
+        workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+        service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to Google Artifact Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.GAR_LOCATION }}-docker.pkg.dev
+        username: oauth2accesstoken
+        password: ${{ steps.auth.outputs.access_token }}
+
+    - name: Build, cache, and Push Docker image for ${{ matrix.service }}
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ${{ matrix.dockerfile }}
+        push: true
+        tags: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}:${{ github.sha }}
+        cache-from: type=registry,ref=${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}:buildcache
+        cache-to: type=registry,ref=${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}:buildcache,mode=max
+
+  db-migrate:
+    name: Run DB Migrations
+    runs-on: ubuntu-latest
+    needs: build # Ensure images are built before attempting to migrate
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      id: auth
+      uses: 'google-github-actions/auth@v2'
+      with:
+        workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+        service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to Google Artifact Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.GAR_LOCATION }}-docker.pkg.dev
+        username: oauth2accesstoken
+        password: ${{ steps.auth.outputs.access_token }}
+
+    - name: Build and Push DB Migration Image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: Dockerfile.db_migrate
+        push: true
+        tags: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/db-migrate:${{ github.sha }}
+        cache-from: type=registry,ref=${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/db-migrate:buildcache
+        cache-to: type=registry,ref=${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/db-migrate:buildcache,mode=max
+
+    - name: Run Database Migrations Job
+      uses: google-github-actions/run-cloudrun-job@v1
+      with:
+        name: ${{ env.GCP_PROJECT_ID }}-db-migrate # Unique name for the job
+        region: ${{ env.GCP_REGION }}
+        image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/db-migrate:${{ github.sha }}
+        service_account: ${{ secrets.WORKER_SERVICE_ACCOUNT_EMAIL }} # Or a dedicated SA for migrations
+        secrets: |
+          DATABASE_URL=DATABASE_URL:latest
+
   deploy:
+    needs: [build, db-migrate] # Ensure both build and db-migrate jobs complete
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
       id-token: 'write'
 
     steps:
+    # The build steps are now in a separate, parallel job.
     - name: Checkout code
       uses: actions/checkout@v4
 
@@ -35,31 +132,13 @@ jobs:
     - name: Set up Cloud SDK
       uses: 'google-github-actions/setup-gcloud@v2'
 
-    - name: Configure Docker
-      run: gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev
-
-    - name: Build and Push API Docker image
-      run: |-
-        docker build -f Dockerfile.api -t ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/api:latest .
-        docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/api:latest
-
-    - name: Build and Push Worker Docker image
-      run: |-
-        docker build -f Dockerfile.worker -t ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/worker:latest .
-        docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/worker:latest
-
-    - name: Build and Push Mini-App Docker image
-      run: |-
-        docker build -f Dockerfile.mini_app -t ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/mini-app:latest .
-        docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/mini-app:latest
-
     - name: Deploy Worker Service
       id: deploy-worker
       uses: google-github-actions/deploy-cloudrun@v2
       with:
         service: ${{ env.WORKER_SERVICE_NAME }}
         region: ${{ env.GCP_REGION }}
-        image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/worker:latest
+        image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/worker:${{ github.sha }}
         no_allow_unauthenticated: true
         service_account: ${{ secrets.WORKER_SERVICE_ACCOUNT_EMAIL }} # e.g., worker-service-sa@...
         env_vars: |
@@ -77,7 +156,7 @@ jobs:
       with:
         service: ${{ env.API_SERVICE_NAME }}
         region: ${{ env.GCP_REGION }}
-        image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/api:latest
+        image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/api:${{ github.sha }}
         allow_unauthenticated: true
         service_account: ${{ secrets.API_SERVICE_ACCOUNT_EMAIL }} # e.g., api-service-sa@...
         env_vars: |
@@ -85,15 +164,18 @@ jobs:
           GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}
           GCP_REGION=${{ env.GCP_REGION }}
           WORKER_URL=${{ steps.deploy-worker.outputs.url }}
-          TASK_QUEUE_NAME=${{ secrets.TASK_QUEUE_NAME }}
           TASK_QUEUE_LOCATION=${{ env.GCP_REGION }}
-          WORKER_SA_EMAIL=${{ secrets.WORKER_SERVICE_ACCOUNT_EMAIL }}
         secrets: |
           DATABASE_URL=DATABASE_URL:latest
+          SECRET_KEY=SECRET_KEY:latest
           GCS_BUCKET_NAME=GCS_BUCKET_NAME:latest
-          SECRET_KEY=${{ secrets.SECRET_KEY }}
-          GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+          TASK_QUEUE_NAME=TASK_QUEUE_NAME:latest # Moved from env_vars to secrets
+          WORKER_SA_EMAIL=WORKER_SA_EMAIL:latest # Moved from env_vars to secrets
+          GEMINI_API_KEY=GEMINI_API_KEY:latest
           SERPER_API_KEY=SERPER_API_KEY:latest
+          # Add any other secrets needed by the API here, e.g., OPENAI_API_KEY=OPENAI_API_KEY:latest
+          # YOUTUBE_CLIENT_ID=YOUTUBE_CLIENT_ID:latest
+          # YOUTUBE_CLIENT_SECRET=YOUTUBE_CLIENT_SECRET:latest
 
     - name: Deploy Mini-App Service
       id: deploy-mini-app
@@ -101,7 +183,7 @@ jobs:
       with:
         service: ${{ env.MINI_APP_SERVICE_NAME }}
         region: ${{ env.GCP_REGION }}
-        image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/mini-app:latest
+        image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/mini-app:${{ github.sha }}
         allow_unauthenticated: true # Mini-app is public facing
         service_account: ${{ secrets.API_SERVICE_ACCOUNT_EMAIL }} # Or a dedicated SA for mini-app
         env_vars: |

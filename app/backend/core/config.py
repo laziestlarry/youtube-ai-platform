@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     TASK_QUEUE_LOCATION: str | None = None  # Location of Cloud Tasks queue
     WORKER_SA_EMAIL: str | None = None  # Email of worker's service account
 
+    # New fields from ValidationError in .env
+    TTS_PROVIDER: str | None = None
+    TTS_VOICE: str | None = None
+    ADVANCED_VIDEO: bool = False # Assuming this is a boolean based on 'true' value
+    MOTION_FOOTAGE_DIR: str | None = None
+    MUSIC_PATH: str | None = None
+    YOUTUBE_API_KEY: str | None = None # This is distinct from YOUTUBE_CLIENT_ID/SECRET
     class Config:
         case_sensitive = True
         env_file = ".env"
