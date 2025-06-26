@@ -77,4 +77,4 @@ gcloud run deploy youtube-ai-platform --image us-central1-docker.pkg.dev/<PROJEC
 - [Discussions](https://github.com/laziestlarry/youtubing_ai/discussions)
 
 ## Vision
-This platform is engineered for business velocity, technical excellence, and future-proof growth in the YouTube content ecosystem. 
+This platform is engineered for business velocity, technical excellence, and future-proof growth in the YouTube content ecosystem. # test
