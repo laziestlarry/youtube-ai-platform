@@ -20,25 +20,22 @@ COPY frontend/ ./
 RUN yarn build
 
 # Stage 2: Build the Python mini-app and serve the frontend
-FROM python:3.11-slim
+FROM python:3.10-slim
 
+# Set the working directory for the Python application
 WORKDIR /app
 
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+# Install system dependencies (ffmpeg as per DEPLOYMENT.md)
+RUN apt-get update && apt-get install -y ffmpeg --no-install-recommends && rm -rf /var/lib/apt/lists/*
 
-# Install system dependencies (ffmpeg as per DEPLOYMENT.md, curl from existing Dockerfile)
-RUN apt-get update && apt-get install -y ffmpeg curl --no-install-recommends && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
 # Copy Python application code and requirements
+COPY mini_app/ ./mini_app/
+COPY app/requirements.txt ./app/requirements.txt # Assuming shared requirements
 COPY mini_app/requirements.txt ./mini_app/requirements.txt
 
 # Install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip && \
+RUN pip install --no-cache-dir -r app/requirements.txt && \
     pip install --no-cache-dir -r mini_app/requirements.txt
-
-# Copy the mini_app Python code
-COPY mini_app/ ./mini_app/
 
 # Copy built frontend assets from the builder stage into the Python app's static directory
 # IMPORTANT: Your mini_app Python service must be configured to serve static files from this path.
@@ -46,5 +43,6 @@ COPY mini_app/ ./mini_app/
 COPY --from=frontend-builder /app/frontend/build ./mini_app/static
 
 # Set the entrypoint for the mini-app Python service
-# Align with the existing Dockerfile.mini_app's CMD
-CMD ["gunicorn", "mini_app.app.main:app", "--bind", "0.0.0.0:8080", "--workers", "1", "--worker-class", "uvicorn.workers.UvicornWorker", "--log-level", "info"]
+# Replace with the actual command to start your mini_app (e.g., uvicorn, gunicorn, python script)
+# For Cloud Run, it typically listens on the PORT environment variable.
+CMD ["python", "mini_app/main.py"] # Placeholder: Adjust this to your actual mini_app startup command
