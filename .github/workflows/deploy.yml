@@ -42,6 +42,14 @@ jobs:
         workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
         service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
+    - name: Check for access token
+      id: check_token
+      run: |
+        if [ -z "${{ steps.auth.outputs.access_token }}" ]; then
+          echo "::error::Failed to generate Google Cloud access token. Check Workload Identity Federation configuration and IAM permissions."
+          exit 1
+        fi
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
@@ -79,6 +87,14 @@ jobs:
       with:
         workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
         service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+    - name: Check for access token
+      id: check_token
+      run: |
+        if [ -z "${{ steps.auth.outputs.access_token }}" ]; then
+          echo "::error::Failed to generate Google Cloud access token. Check Workload Identity Federation configuration and IAM permissions."
+          exit 1
+        fi
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3

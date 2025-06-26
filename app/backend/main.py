@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -39,9 +38,7 @@ if build_dir:
     # The static assets (JS, CSS) are in a 'static' subdirectory within the build output.
     # We mount this subdirectory to the '/static' URL path.
     app.mount(
-        "/static",
-        StaticFiles(directory=build_dir / "static"),
-        name="static_assets"
+        "/static", StaticFiles(directory=build_dir / "static"), name="static_assets"
     )
 
     @app.get("/{full_path:path}", include_in_schema=False)
@@ -52,5 +49,8 @@ if build_dir:
         return FileResponse("index.html not found", status_code=404)
 else:
     print("WARNING: Static file directory not found. Frontend will not be served.")
-    print(f"         Checked for '{docker_build_path}' and '{local_build_path}'.")
+    print(
+        f"         Checked for '{docker_build_path}' and "
+        f"'{local_build_path}'."
+    )
     print("         Please run 'yarn build' in 'frontend/dev_dashboard'.")
