@@ -18,6 +18,7 @@ jobs:
       - name: Run Tests
         run: |
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pytest
           if [ -d app/tests ]; then pytest app/tests; fi
       - name: Milestone/Project Board Sync (placeholder)
         run: echo "Syncing with project board..."
