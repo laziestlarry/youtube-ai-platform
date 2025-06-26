@@ -27,6 +27,21 @@ jobs:
         run: |
           cd frontend/dev_dashboard
           npm install
+      - name: Create .env from secrets
+        run: |
+          cat <<EOF > app/.env
+          SECRET_KEY=${{ secrets.SECRET_KEY }}
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+          SERPER_API_KEY=${{ secrets.SERPER_API_KEY }}
+          GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+          GCP_REGION=${{ secrets.GCP_REGION }}
+          GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}
+          WORKER_URL=${{ secrets.WORKER_URL }}
+          TASK_QUEUE_NAME=${{ secrets.TASK_QUEUE_NAME }}
+          TASK_QUEUE_LOCATION=${{ secrets.TASK_QUEUE_LOCATION }}
+          # Add any other required variables here
+          EOF
       - name: Pre-launch validation
         run: bash app/lifecycle/tasks/prelaunch_validate.sh
       - name: Build
