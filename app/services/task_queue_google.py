@@ -1,10 +1,6 @@
 import json
-import time
 
 from google.cloud import tasks_v2
-from google.protobuf import timestamp_pb2
-
-from app.backend.core.config import settings
 
 
 def create_http_task(
@@ -18,7 +14,7 @@ def create_http_task(
 ) -> tasks_v2.Task:
     """
     Create an HTTP Task in a Google Cloud Tasks queue with OIDC authentication.
-    This is the secure way for a Cloud Run service to invoke another private Cloud Run service.
+    Secure way for a Cloud Run to invoke another private Cloud Run service.
     """
     client = tasks_v2.CloudTasksClient()
 

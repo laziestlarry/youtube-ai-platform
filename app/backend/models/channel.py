@@ -13,7 +13,10 @@ class Channel(Base):
     description = Column(Text)
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow)
 
     owner = relationship("User", back_populates="channels")
     videos = relationship("Video", back_populates="channel")

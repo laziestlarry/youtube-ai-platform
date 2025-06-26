@@ -9,7 +9,12 @@ app = FastAPI(title="YouTube AI Platform")
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 # This should be the last route registration
-app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="static")
+app.mount(
+    "/",
+    StaticFiles(
+        directory="frontend/dist",
+        html=True),
+    name="static")
 
 
 @app.get("/api/health", tags=["Health"])

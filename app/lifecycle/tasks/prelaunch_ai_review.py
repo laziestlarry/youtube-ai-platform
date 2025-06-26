@@ -13,7 +13,9 @@ def review_with_ollama(prompt, model="llama3"):
     print(result.stdout.decode())
 
 
-def review_with_lmstudio(prompt, api_url="http://localhost:1234/v1/chat/completions"):
+def review_with_lmstudio(
+        prompt,
+        api_url="http://localhost:1234/v1/chat/completions"):
     """Send prompt to LM Studio local API (OpenAI compatible)."""
     import requests
 
@@ -34,9 +36,8 @@ if __name__ == "__main__":
     with open("../../backend/main.py") as f:
         code = f.read()
     prompt = (
-        "Review this FastAPI code for best practices, security, and missing tests. "
-        "Suggest improvements and highlight any issues:\n\n" + code
-    )
+        "Review code for best practices, security, and missing tests. "
+        "Suggest improvements and highlight any issues:\n\n" + code)
 
     # Choose your local AI model provider:
     if os.environ.get("USE_LMSTUDIO"):

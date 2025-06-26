@@ -16,7 +16,10 @@ class Video(Base):
     status = Column(String(50), default="draft")
     published_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow)
 
     channel = relationship("Channel", back_populates="videos")
     creator = relationship("User", back_populates="videos")

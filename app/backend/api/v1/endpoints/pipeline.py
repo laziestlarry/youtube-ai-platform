@@ -14,7 +14,8 @@ def generate_video(
     *,
     db: Session = Depends(deps.get_db),
     video_in: schemas.VideoCreate,
-    # current_user: models.User = Depends(deps.get_current_active_user), # Optional: secure endpoint
+    # current_user: models.User = Depends(deps.get_current_active_user), #
+    # Optional: secure endpoint
 ) -> any:
     """
     Create a new video record and enqueue a task for the worker to generate it.

@@ -1,4 +1,3 @@
-import os
 
 from pydantic_settings import BaseSettings
 
@@ -23,10 +22,10 @@ class Settings(BaseSettings):
     GCS_BUCKET_NAME: str | None = None  # Bucket for storing generated media
 
     # Cloud Tasks / Worker configuration
-    WORKER_URL: str | None = None  # URL of the private worker Cloud Run service
-    TASK_QUEUE_NAME: str | None = None  # Name of the Cloud Tasks queue
-    TASK_QUEUE_LOCATION: str | None = None  # Location of the Cloud Tasks queue
-    WORKER_SA_EMAIL: str | None = None  # Email of the worker's service account
+    WORKER_URL: str | None = None  # URL of private worker Cloud Run service
+    TASK_QUEUE_NAME: str | None = None  # Name of Cloud Tasks queue
+    TASK_QUEUE_LOCATION: str | None = None  # Location of Cloud Tasks queue
+    WORKER_SA_EMAIL: str | None = None  # Email of worker's service account
 
     class Config:
         case_sensitive = True

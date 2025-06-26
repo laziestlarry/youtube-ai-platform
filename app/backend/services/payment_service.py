@@ -29,10 +29,9 @@ class PaymentService:
         # For now, we simulate a success and update our record.
         provider_id = f"payoneer_{uuid.uuid4()}"
         updated_transaction = crud.transaction.update(
-            db,
-            db_obj=db_transaction,
-            obj_in={"status": "completed", "provider_transaction_id": provider_id},
-        )
+            db, db_obj=db_transaction, obj_in={
+                "status": "done", "provider_transaction_id": provider_id}, )
 
-        print(f"Payoneer payout successful. Transaction ID: {updated_transaction.id}")
+        print(
+            f"Payout successful. Transaction ID: {updated_transaction.id}")
         return updated_transaction

@@ -1,5 +1,4 @@
 # app/backend/worker_main.py
-import json
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from sqlalchemy.orm import Session
@@ -12,7 +11,9 @@ app = FastAPI(title="YouTube AI Platform Worker")
 
 
 @app.post("/process-pipeline")
-async def process_pipeline_endpoint(request: Request, db: Session = Depends(get_db)):
+async def process_pipeline_endpoint(
+        request: Request,
+        db: Session = Depends(get_db)):
     """
     Endpoint triggered by Google Cloud Tasks to process a video pipeline.
     """
@@ -43,13 +44,16 @@ async def process_pipeline_endpoint(request: Request, db: Session = Depends(get_
         return {"status": "success", "video_id": video_id}
     except Exception as e:
         print(f"Worker: Error processing video_id {video_id}: {e}")
-        if video_id:  # Only attempt to update if video_id was successfully extracted
+        if video_id:  # Only update if video_id was successfully extracted
             video = crud.video.get(
                 db, id=video_id
             )  # Re-fetch in case of error before initial fetch
             if video:
-                crud.video.update(db, db_obj=video, obj_in={"status": "failed"})
-        raise HTTPException(status_code=500, detail=f"Error processing video: {str(e)}")
+                crud.video.update(
+                    db, db_obj=video, obj_in={
+                        "status": "failed"})
+        raise HTTPException(status_code=500,
+                            detail=f"Error processing video: {str(e)}")
 
 
 @app.get("/health")

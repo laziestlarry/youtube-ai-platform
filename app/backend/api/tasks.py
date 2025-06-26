@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List
 
 from core.event_bus import event_bus
 from fastapi import APIRouter, HTTPException

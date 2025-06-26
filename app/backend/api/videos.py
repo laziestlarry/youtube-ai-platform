@@ -21,7 +21,10 @@ class VideoBrief(BaseModel):
 
 
 @router.post("/initiate-from-brief/", response_model=schemas.VideoInDB)
-def initiate_video_from_brief(*, db: Session = Depends(get_db), brief: VideoBrief):
+def initiate_video_from_brief(
+    *,
+    db: Session = Depends(get_db),
+        brief: VideoBrief):
     """
     Receives a brief from the mini-app, creates a video record,
     and triggers the background pipeline.
@@ -48,7 +51,7 @@ def initiate_video_from_brief(*, db: Session = Depends(get_db), brief: VideoBrie
     if not all(required_configs):
         raise HTTPException(
             status_code=500,
-            detail="Server is not configured for background video processing (missing GCP/Cloud Tasks settings).",
+            detail="Server bad configed (missing GCP/Cloud Tasks settings).",
         )
     payload = {"video_id": video.id, "advanced_editing": False}
     task_queue_google.create_http_task(
