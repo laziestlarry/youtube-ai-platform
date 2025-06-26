@@ -17,19 +17,16 @@ else
 fi
 
 # Lint/Type-check frontend
-if [ -f ../../frontend/package.json ]; then
-  cd ../../frontend
-  npm run lint || echo "Frontend lint skipped"
-  npm run type-check || echo "Frontend type-check skipped"
-  cd -
+if [ -f ../../frontend/dev_dashboard/package.json ]; then
+  echo "✅ Frontend package.json found."
+  # Note: 'lint' and 'type-check' scripts are not defined in package.json.
+  # These steps are skipped. To enable, add them to frontend/dev_dashboard/package.json
+else
+  echo "⚠️ Frontend package.json not found, skipping frontend checks."
 fi
 
-# Run backend tests
-if [ -d ../../backend/tests ]; then
-  pytest ../../backend/tests
-else
-  echo "No backend tests found."
-fi
+# Backend tests are run directly in the CI workflow, skipping here to avoid redundancy.
+echo "Backend tests will be run by the CI workflow."
 
 # Check .env
 if [ ! -f ../../.env ]; then

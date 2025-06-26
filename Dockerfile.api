@@ -3,12 +3,12 @@
 FROM node:18-alpine as frontend-builder
 WORKDIR /app/frontend/dev_dashboard
 
-COPY frontend/dev_dashboard/package*.json ./
-RUN npm install
+COPY frontend/dev_dashboard/package.json ./
+COPY frontend/dev_dashboard/yarn.lock ./
+RUN yarn install --frozen-lockfile
 
 COPY frontend/dev_dashboard/ ./
-ARG VITE_API_BASE_URL=/api
-RUN npm run build
+RUN yarn build # The ARG VITE_API_BASE_URL is not used by react-scripts
 
 # Stage 2: Install Python Dependencies
 FROM python:3.11-slim as backend-builder
@@ -37,7 +37,9 @@ COPY app/backend /app/app/backend
 COPY app/full_pipeline.py /app/app/full_pipeline.py
 COPY app/services /app/app/services
 
-COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
+# Copy the built frontend assets to a static directory.
+# Note: Your API backend (app/backend/main.py) must be configured to serve these files.
+COPY --from=frontend-builder /app/frontend/dev_dashboard/build ./app/static
 
 # Database initialization
 CMD ["gunicorn", "app.backend.main:app", "--bind", "0.0.0.0:8000", "--workers", "3", "--worker-class", "uvicorn.workers.UvicornWorker", "--log-level", "info"]
