@@ -29,7 +29,7 @@ jobs:
           npm install
       - name: Create .env from secrets
         run: |
-          cat <<EOF > app/.env
+          cat <<EOF > .env
           SECRET_KEY=${{ secrets.SECRET_KEY }}
           DATABASE_URL=${{ secrets.DATABASE_URL }}
           GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}

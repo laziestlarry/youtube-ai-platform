@@ -2,18 +2,18 @@
 FROM node:18-alpine as frontend-builder
 
 # Set the working directory for the frontend application
-WORKDIR /app/frontend
+WORKDIR /app/frontend/dev_dashboard
 
 # Copy package.json and yarn.lock first to leverage Docker cache
 # Assuming package.json and yarn.lock are directly in the 'frontend/' directory
-COPY frontend/package.json ./
-COPY frontend/yarn.lock ./
+COPY frontend/dev_dashboard/package.json ./
+COPY frontend/dev_dashboard/yarn.lock ./
 
 # Install frontend dependencies
 RUN yarn install --frozen-lockfile
 
 # Copy the rest of the frontend source code
-COPY frontend/ ./
+COPY frontend/dev_dashboard/ ./
 
 # Build the React application
 # This command will generate static assets, typically in a 'build' directory
@@ -40,10 +40,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy the mini_app Python code
 COPY mini_app/ ./mini_app/
 
-# Copy built frontend assets from the builder stage into the Python app's static directory
+# Copy built frontend assets from the builder stage into the Python app's static directory for mini_app
 # IMPORTANT: Your mini_app Python service must be configured to serve static files from this path.
 # For example, if using FastAPI, you'd mount StaticFiles(directory="mini_app/static").
-COPY --from=frontend-builder /app/frontend/build ./mini_app/static
+COPY --from=frontend-builder /app/frontend/dev_dashboard/build ./mini_app/static
 
 # Set the entrypoint for the mini-app Python service
 # Align with the existing Dockerfile.mini_app's CMD
