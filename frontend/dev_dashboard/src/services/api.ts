@@ -107,4 +107,13 @@ export async function fetchGrowthData() {
 export async function fetchEngagementData() {
   const res = await fetch(`${API_BASE}/analytics/engagement`);
   return res.json();
-} 
+}
+
+export default {
+  fetchChannels,
+  fetchUsers,
+  fetchVideos,
+  fetchTasks,
+  fetchAgents,
+  fetchAnalyticsSummary,
+}; 
