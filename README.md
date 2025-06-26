@@ -37,8 +37,8 @@ uvicorn app.backend.main:app --reload
 ### Frontend
 ```bash
 cd frontend
-npm install
-npm start
+yarn install
+yarn start
 ```
 
 ## Environment Setup

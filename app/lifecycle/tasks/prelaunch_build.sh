@@ -1,16 +1,20 @@
 #!/bin/bash
 set -e
-echo "🔨 Building backend and frontend..."
+echo "🏗️ Running build validation..."
 
-# Backend: (add build steps if needed)
-echo "Backend: nothing to build (Python source)."
+echo "Validating API Dockerfile..."
+docker build -f Dockerfile.api -t api-ci-validation .
 
-# Frontend:
-if [ -f ../../frontend/package.json ]; then
-  cd ../../frontend
-  npm install
-  npm run build
-  cd -
+echo "Validating Worker Dockerfile..."
+# Assuming Dockerfile.worker exists as it's in deploy.yml
+if [ -f Dockerfile.worker ]; then
+  docker build -f Dockerfile.worker -t worker-ci-validation .
+else
+  echo "⚠️ Dockerfile.worker not found, skipping."
 fi
 
-echo "✅ Build complete" 
+
+echo "Validating Mini-App Dockerfile..."
+docker build -f Dockerfile.mini_app -t mini-app-ci-validation .
+
+echo "✅ Build validation complete."
