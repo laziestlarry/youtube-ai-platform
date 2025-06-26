@@ -1,6 +1,7 @@
 import os
 import subprocess
 
+
 def review_with_ollama(prompt, model="llama3"):
     """Send prompt to local Ollama model."""
     result = subprocess.run(
@@ -11,9 +12,11 @@ def review_with_ollama(prompt, model="llama3"):
     )
     print(result.stdout.decode())
 
+
 def review_with_lmstudio(prompt, api_url="http://localhost:1234/v1/chat/completions"):
     """Send prompt to LM Studio local API (OpenAI compatible)."""
     import requests
+
     response = requests.post(
         api_url,
         json={
@@ -24,6 +27,7 @@ def review_with_lmstudio(prompt, api_url="http://localhost:1234/v1/chat/completi
         timeout=60,
     )
     print(response.json()["choices"][0]["message"]["content"])
+
 
 if __name__ == "__main__":
     # Example: Review backend main API file
@@ -38,4 +42,4 @@ if __name__ == "__main__":
     if os.environ.get("USE_LMSTUDIO"):
         review_with_lmstudio(prompt)
     else:
-        review_with_ollama(prompt) 
+        review_with_ollama(prompt)

@@ -10,6 +10,7 @@ from app.backend.db.session import get_db
 
 router = APIRouter()
 
+
 @router.post("/token", response_model=schemas.Token)
 def login_for_access_token(
     db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()
@@ -25,5 +26,7 @@ def login_for_access_token(
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     access_token_expires = timedelta(minutes=security.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = security.create_access_token(user.id, expires_delta=access_token_expires)
+    access_token = security.create_access_token(
+        user.id, expires_delta=access_token_expires
+    )
     return {"access_token": access_token, "token_type": "bearer"}

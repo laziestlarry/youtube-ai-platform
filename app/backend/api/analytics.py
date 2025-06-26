@@ -1,5 +1,6 @@
-from fastapi import APIRouter
 from typing import List
+
+from fastapi import APIRouter
 
 router = APIRouter()
 
@@ -26,14 +27,17 @@ engagement_data = [
     {"month": "May", "engagement": 900},
 ]
 
+
 @router.get("/revenue")
 def get_revenue() -> List[dict]:
     return revenue_data
+
 
 @router.get("/growth")
 def get_growth() -> List[dict]:
     return growth_data
 
+
 @router.get("/engagement")
 def get_engagement() -> List[dict]:
-    return engagement_data 
+    return engagement_data

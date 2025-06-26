@@ -1,7 +1,10 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime
-from sqlalchemy.orm import relationship
 from datetime import datetime
+
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import relationship
+
 from .base import Base
+
 
 class Video(Base):
     __tablename__ = "videos"
@@ -16,4 +19,4 @@ class Video(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     channel = relationship("Channel", back_populates="videos")
-    creator = relationship("User", back_populates="videos") 
+    creator = relationship("User", back_populates="videos")

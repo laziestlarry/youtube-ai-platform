@@ -8,6 +8,7 @@ from app.services import task_queue_google
 
 router = APIRouter()
 
+
 @router.post("/generate", response_model=schemas.Video)
 def generate_video(
     *,

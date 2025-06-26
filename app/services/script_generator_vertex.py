@@ -1,6 +1,8 @@
 import vertexai
 from vertexai.generative_models import GenerativeModel
+
 from app.backend.core.config import settings
+
 
 def generate_script_with_gemini(title: str, description: str) -> str:
     """
