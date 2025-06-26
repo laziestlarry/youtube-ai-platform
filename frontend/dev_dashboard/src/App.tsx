@@ -1,1 +1,2 @@
-export {}; 
+export {};
+export default App; 
