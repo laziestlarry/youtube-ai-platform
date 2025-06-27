@@ -1,3 +1,5 @@
+import argparse
+import uuid
 from app.backend.core.config import settings
 from app.backend.models.video import Video
 from app.services.gcs_utils import \
@@ -32,3 +34,22 @@ def run_video_production_pipeline(video: Video, advanced=False):
     # ... Subsequent steps would follow ...
 
     print(f"[Pipeline] Pipeline complete for Video ID: {video.id}.")
+
+
+def main():
+    """
+    Main entry point for the script. Parses command-line arguments
+    and triggers the video production pipeline.
+    """
+    parser = argparse.ArgumentParser(description="Run the full video generation pipeline.")
+    parser.add_argument("--topic", type=str, required=True, help="The topic or title for the new video.")
+    parser.add_argument("--description", type=str, default="", help="An optional description for the video.")
+    args = parser.parse_args()
+
+    # Create a mock Video object to drive the pipeline
+    video_data = Video(id=str(uuid.uuid4()), title=args.topic, description=args.description)
+
+    run_video_production_pipeline(video_data)
+
+if __name__ == "__main__":
+    main()

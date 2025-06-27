@@ -3,25 +3,25 @@
 .gitignore
 
 # Docker
+Dockerfile
 .dockerignore
 
-# Node
-**/node_modules
-npm-debug.log
-yarn-error.log
-
 # Python
-**/__pycache__/
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
-.Python
-**/env/
-**/venv/
+venv/
 
-# IDE / OS
-.idea/
+# Node
+node_modules/
+
+# Documentation & Config
+*.md
+*.env
+env.template
+
+# IDE / OS specific
 .vscode/
-*.swp
-*~
+.idea/
 .DS_Store
