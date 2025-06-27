@@ -23,7 +23,8 @@ steps:
     id: 'Run Full Pipeline'
     entrypoint: 'python' # Override the Dockerfile's CMD to run a specific script
     args:
-      - 'app/full_pipeline.py'
+      - '-m'
+      - 'app.full_pipeline' # Run as a module to fix import paths
       - '--topic'
       - '${_VIDEO_TOPIC}' # Use a substitution variable for the topic
     secretEnv:
