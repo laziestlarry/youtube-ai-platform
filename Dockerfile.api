@@ -33,9 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY --from=backend-builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY app/backend /app/app/backend
-COPY app/full_pipeline.py /app/app/full_pipeline.py
-COPY app/services /app/app/services
+COPY app ./app
 
 # Copy the built frontend assets to a static directory.
 # Note: Your API backend (app/backend/main.py) must be configured to serve these files.
