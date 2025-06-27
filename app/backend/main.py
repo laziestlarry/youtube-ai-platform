@@ -37,9 +37,9 @@ elif local_build_path.is_dir():
 if build_dir:
     # The static assets (JS, CSS) are in a 'static' subdirectory within the build output.
     # We mount this subdirectory to the '/static' URL path.
-    app.mount(
-        "/static", StaticFiles(directory=build_dir / "static"), name="static_assets"
-    )
+    app.mount("/static",
+              StaticFiles(directory=build_dir / "static"),
+              name="static_assets")
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def serve_react_app(full_path: str):
@@ -48,9 +48,8 @@ if build_dir:
             return FileResponse(index_path)
         return FileResponse("index.html not found", status_code=404)
 else:
-    print("WARNING: Static file directory not found. Frontend will not be served.")
-    print(
-        f"         Checked for '{docker_build_path}' and "
-        f"'{local_build_path}'."
-    )
+    print("WARNING: Static file directory not found. "
+          "Frontend will not be served.")
+    print(f"         Checked for '{docker_build_path}' and "
+          f"'{local_build_path}'.")
     print("         Please run 'yarn build' in 'frontend/dev_dashboard'.")
