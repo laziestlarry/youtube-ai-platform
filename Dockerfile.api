@@ -1,14 +1,18 @@
 # Dockerfile.api
 # Stage 1: Build Frontend
 FROM node:18-alpine AS frontend-builder
-WORKDIR /app/frontend/dev_dashboard
+WORKDIR /app
 
+# Copy package files first to leverage Docker cache
 COPY frontend/dev_dashboard/package.json ./
 COPY frontend/dev_dashboard/yarn.lock ./
+
+# Install dependencies
 RUN yarn install --frozen-lockfile
 
-COPY frontend/dev_dashboard/ ./ # Copy the rest of the frontend source code
-RUN yarn build # Build the React application
+# Copy the rest of the source code and build the application
+COPY frontend/dev_dashboard/ ./
+RUN yarn build
 
 # Stage 2: Install Python Dependencies
 FROM python:3.11-slim AS backend-builder
