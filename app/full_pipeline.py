@@ -2,7 +2,7 @@ import argparse
 import uuid
 from app.backend.core.config import settings
 from app.backend.models.video import Video
-from google.api_core.exceptions import NotFound
+from google.api_core.exceptions import Forbidden, NotFound
 from app.services.gcs_utils import \
     upload_to_gcs  # Assumes a new utility for GCS
 from app.services.script_generator_gemini import generate_script_with_gemini
@@ -33,9 +33,17 @@ def run_video_production_pipeline(video: Video, advanced=False):
         )
         print(f"[Pipeline] Synthesized audio and uploaded to: {audio_gcs_uri}")
     except NotFound:
-        print(f"ERROR: Google Cloud Storage bucket '{settings.GCS_BUCKET_NAME}' not found.")
-        print("Please create the bucket in your Google Cloud project or correct the GCS_BUCKET_NAME in your settings.")
-        # Re-raise the exception as the pipeline cannot continue without the audio.
+        print(
+            f"ERROR: Google Cloud Storage bucket '{settings.GCS_BUCKET_NAME}' not found."
+        )
+        print(
+            "Please create the bucket in your Google Cloud project or correct the GCS_BUCKET_NAME in your settings."
+        )
+        raise
+    except Forbidden as e:
+        print(f"ERROR: Permission denied when uploading to GCS bucket '{settings.GCS_BUCKET_NAME}'.")
+        print("The service account running this pipeline needs the 'Storage Object Creator' role.")
+        print(f"Details: {e.message}")
         raise
 
     # ... Subsequent steps would follow ...
