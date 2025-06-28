@@ -20,11 +20,12 @@ def generate_script_with_gemini(title: str, description: str) -> str:
     # but explicit initialization is more robust in a containerized environment.
     vertexai.init(project=settings.GCP_PROJECT_ID, location=settings.GCP_REGION)
 
-    # Use a stable, generally available model version.
-    # The specific version 'gemini-1.0-pro-002' was not found.
-    # We will use the most common stable identifier, 'gemini-pro', which is an alias
-    # for the latest stable 1.0 Pro model.
-    model_name = "gemini-pro"
+    # DIAGNOSTIC STEP: Since multiple Gemini models (1.5-pro, 1.0-pro, gemini-pro)
+    # have returned a 404 Not Found error, we are switching to a different,
+    # widely available PaLM 2 model ('text-bison@002') to test if the project
+    # has access to any generative models in Vertex AI.
+    # If this succeeds, it points to a project-specific issue with Gemini access.
+    model_name = "text-bison@002"
     print(f"Using Vertex AI model: {model_name}")
     model = GenerativeModel(model_name)
 
