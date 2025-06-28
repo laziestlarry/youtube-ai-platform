@@ -5,6 +5,10 @@ on:
     branches:
       - develop
 
+permissions:
+  contents: 'read'
+  id-token: 'write'
+
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GAR_LOCATION: us-central1
