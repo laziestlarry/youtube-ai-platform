@@ -41,9 +41,9 @@ def run_video_production_pipeline(video: Video, advanced=False):
         )
         raise
     except Forbidden as e:
-        print(f"ERROR: Permission denied when uploading to GCS bucket '{settings.GCS_BUCKET_NAME}'.")
-        print("The service account running this pipeline needs the 'Storage Object Creator' role.")
-        print(f"Details: {e.message}")
+        print(f"ERROR: Permission denied when trying to access Google Cloud Storage bucket '{settings.GCS_BUCKET_NAME}'.")
+        print("This could be due to missing IAM permissions for the service account or a project billing issue.")
+        print(f"Detailed error from Google Cloud: {e.message}")
         raise
 
     # ... Subsequent steps would follow ...
