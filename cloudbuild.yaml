@@ -27,8 +27,6 @@ steps:
       - 'app.full_pipeline' # Run as a module to fix import paths
       - '--topic'
       - '${_VIDEO_TOPIC}' # Use a substitution variable for the topic
-    secretEnv:
-      - 'GEMINI_API_KEY'
     # Provide required environment variables for the application settings to load.
     # The pipeline script doesn't use the database or secret key, so dummy values are sufficient.
     env:
@@ -39,11 +37,6 @@ steps:
       - 'GCP_REGION=us-central1'
 
 # Define which secrets from Secret Manager are available to this build
-availableSecrets:
-  secretManager:
-    - versionName: projects/$PROJECT_ID/secrets/GEMINI_API_KEY/versions/latest
-      env: 'GEMINI_API_KEY'
-
 timeout: 7200s # 2 hours
 
 # Set a more powerful machine for video processing.

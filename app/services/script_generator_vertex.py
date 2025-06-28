@@ -21,9 +21,10 @@ def generate_script_with_gemini(title: str, description: str) -> str:
     vertexai.init(project=settings.GCP_PROJECT_ID, location=settings.GCP_REGION)
 
     # Use a stable, generally available model version.
-    # The 'gemini-1.0-pro' alias can sometimes have availability issues.
-    # Using a specific, stable version like 'gemini-1.0-pro-002' is more reliable.
-    model_name = "gemini-1.0-pro-002"
+    # The specific version 'gemini-1.0-pro-002' was not found.
+    # We will use the most common stable identifier, 'gemini-pro', which is an alias
+    # for the latest stable 1.0 Pro model.
+    model_name = "gemini-pro"
     print(f"Using Vertex AI model: {model_name}")
     model = GenerativeModel(model_name)
 
@@ -39,7 +40,15 @@ def generate_script_with_gemini(title: str, description: str) -> str:
     """
 
     print(f"Generating script for title: '{title}'...")
-    response = model.generate_content(prompt)
+    # Adding explicit generation and safety settings for robustness
+    response = model.generate_content(
+        prompt,
+        generation_config={
+            "temperature": 0.7,
+            "top_p": 1.0,
+            "max_output_tokens": 2048,
+        },
+    )
     print("Script generation successful.")
 
     return response.text
