@@ -18,7 +18,7 @@ jobs:
   build-and-push:
     uses: ./.github/workflows/reusable-build.yml
     with:
-      service_name: ${{ env.SERVICE_NAME_WEB }}
+      service_name: 'creator-cmd-center-web'
     secrets: inherit
 
   run-migrations:

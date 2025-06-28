@@ -17,7 +17,7 @@ jobs:
   build-and-push:
     uses: ./.github/workflows/reusable-build.yml
     with:
-      service_name: ${{ env.SERVICE_NAME }}
+      service_name: 'youtube-ai-platform-test'
     secrets: inherit
 
   deploy-test-app:
