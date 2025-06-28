@@ -1,5 +1,5 @@
-import vertexai
-from vertexai.generative_models import GenerativeModel
+import google.generativeai as genai
+import os
 
 from app.backend.core.config import settings
 
@@ -8,6 +8,10 @@ def generate_script_with_gemini(title: str, description: str) -> str:
     """
     Generates a video script using Google's Gemini model via Vertex AI.
 
+    This version uses the google-generativeai library with a direct API key
+    as a diagnostic step to bypass potential project/region availability issues
+    with the Vertex AI SDK.
+
     Args:
         title: The title of the video.
         description: A brief description of the video's content.
@@ -15,16 +19,9 @@ def generate_script_with_gemini(title: str, description: str) -> str:
     Returns:
         The generated script as a string.
     """
-    print("Initializing Vertex AI...")
-    # The project and location are often discovered from the environment,
-    # but explicit initialization is more robust in a containerized environment.
-    vertexai.init(project=settings.GCP_PROJECT_ID, location=settings.GCP_REGION)
-
-    # The previous diagnostic test confirmed a project/region issue.
-    # We are now trying the target model 'gemini-pro' in a new region ('us-east1').
-    model_name = "gemini-pro"
-    print(f"Using Vertex AI model: {model_name}")
-    model = GenerativeModel(model_name)
+    print("Initializing Google Generative AI client with API Key...")
+    genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+    model = genai.GenerativeModel("gemini-pro")
 
     prompt = f"""
     Create a compelling and engaging YouTube video script based on the following topic.
@@ -38,15 +35,7 @@ def generate_script_with_gemini(title: str, description: str) -> str:
     """
 
     print(f"Generating script for title: '{title}'...")
-    # Adding explicit generation and safety settings for robustness
-    response = model.generate_content(
-        prompt,
-        generation_config={
-            "temperature": 0.7,
-            "top_p": 1.0,
-            "max_output_tokens": 2048,
-        },
-    )
+    response = model.generate_content(prompt)
     print("Script generation successful.")
 
     return response.text
