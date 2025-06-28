@@ -21,9 +21,9 @@ def generate_script_with_gemini(title: str, description: str) -> str:
     vertexai.init(project=settings.GCP_PROJECT_ID, location=settings.GCP_REGION)
 
     # Use a stable, generally available model version.
-    # The 'gemini-1.5-pro' model may not be available in all regions or projects yet.
-    # 'gemini-1.0-pro' is universally available and a robust choice.
-    model_name = "gemini-1.0-pro"
+    # The 'gemini-1.0-pro' alias can sometimes have availability issues.
+    # Using a specific, stable version like 'gemini-1.0-pro-002' is more reliable.
+    model_name = "gemini-1.0-pro-002"
     print(f"Using Vertex AI model: {model_name}")
     model = GenerativeModel(model_name)
 
