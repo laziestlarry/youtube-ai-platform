@@ -21,10 +21,10 @@ def generate_script_with_gemini(title: str, description: str) -> str:
     """
     print("Initializing Google Generative AI client with API Key...")
     genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-    # The error "404 models/gemini-pro is not found for API version v1beta"
-    # indicates that 'gemini-pro' is not the correct identifier for this API.
-    # The correct, stable model name is 'gemini-1.0-pro'.
-    model = genai.GenerativeModel("gemini-1.0-pro")
+    # The API returned a 404 Not Found for 'gemini-1.0-pro'. This indicates
+    # that for the API key's endpoint, a more specific model name is required.
+    # We will use 'gemini-1.5-pro-latest', which is the recommended stable model.
+    model = genai.GenerativeModel("gemini-1.5-pro-latest")
 
     prompt = f"""
     Create a compelling and engaging YouTube video script based on the following topic.
