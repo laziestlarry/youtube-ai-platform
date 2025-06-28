@@ -1,17 +1,24 @@
-fastapi
-uvicorn
-sqlalchemy
-pydantic[email]
-pydantic-settings
-passlib[bcrypt]
-python-jose[cryptography]
-python-multipart # For OAuth2PasswordRequestForm
-psycopg2-binary # For PostgreSQL in production
-requests
-click
-ffmpeg-python
-Pillow
-google-cloud-tasks
-google-cloud-storage
-google-cloud-texttospeech
-google-generativeai
+# --- Core Application ---
+fastapi==0.115.14
+uvicorn==0.34.3
+sqlalchemy==2.0.41
+pydantic[email]==2.11.7
+pydantic-settings==2.10.1
+
+# --- Security ---
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]==3.5.0
+
+# --- Utilities ---
+python-multipart==0.0.20
+requests==2.32.4
+click==8.2.1
+ffmpeg-python==0.2.0
+Pillow==11.2.1
+
+# --- Google Cloud Services ---
+google-cloud-tasks==2.19.3
+google-cloud-storage==3.1.1
+google-cloud-texttospeech==2.16.5
+google-generativeai==0.8.5
+psycopg2-binary==2.9.10
