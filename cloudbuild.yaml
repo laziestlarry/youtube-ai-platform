@@ -34,7 +34,7 @@ steps:
       - 'DATABASE_URL=sqlite+aiosqlite:///:memory:'
       - 'GCS_BUCKET_NAME=${_GCS_BUCKET_NAME}'
       - 'GCP_PROJECT_ID=$PROJECT_ID'
-      - 'GCP_REGION=us-central1'
+      - 'GCP_REGION=us-east1'
 
 # Define which secrets from Secret Manager are available to this build
 timeout: 7200s # 2 hours
