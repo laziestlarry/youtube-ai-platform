@@ -65,9 +65,7 @@ jobs:
           region: ${{ env.REGION }}
           container_command: "alembic"
           container_args: "upgrade,head"
-          secrets:
-            - name: DATABASE_URL
-              key: LATEST
+          secrets: "DATABASE_URL:LATEST"
 
   deploy-services:
     name: 'Deploy Web and Worker Services'
@@ -89,17 +87,12 @@ jobs:
           vpc_connector: 'main-app-connector' # Add this line
           image: ${{ needs.build-and-push.outputs.image_tag }}
           # Secrets from Secret Manager will be mounted as environment variables
-          secrets:
-            - name: DATABASE_URL
-              key: LATEST
-            - name: REDIS_URL
-              key: LATEST
-            - name: SECRET_KEY
-              key: LATEST
-            - name: GOOGLE_CLIENT_ID
-              key: LATEST
-            - name: GOOGLE_CLIENT_SECRET
-              key: LATEST
+          secrets: |-
+            DATABASE_URL:LATEST
+            REDIS_URL:LATEST
+            SECRET_KEY:LATEST
+            GOOGLE_CLIENT_ID:LATEST
+            GOOGLE_CLIENT_SECRET:LATEST
 
       - name: Deploy Worker Service
         id: deploy-worker
@@ -113,13 +106,10 @@ jobs:
           no_traffic: true
           container_command: "celery"
           container_args: "-A,app.backend.tasks.celery_app,worker,--loglevel=info"
-          secrets:
-            - name: DATABASE_URL
-              key: LATEST
-            - name: REDIS_URL
-              key: LATEST
-            - name: SECRET_KEY
-              key: LATEST
+          secrets: |-
+            DATABASE_URL:LATEST
+            REDIS_URL:LATEST
+            SECRET_KEY:LATEST
 
       - name: Show Deployed URLs
         run: |-
