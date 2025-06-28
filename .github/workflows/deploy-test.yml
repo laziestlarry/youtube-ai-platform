@@ -40,7 +40,7 @@ jobs:
             --project=${{ env.PROJECT_ID }} \
             --location=${{ env.GAR_LOCATION }} \
             --policy='{
-                "name": "delete-untagged-after-15-days", # Note: name is for identification, content matters
+                "name": "delete-untagged-after-15-days",
                 "action": {"type": "Delete"},
                 "condition": {
                   "olderThan": "1296000s",
