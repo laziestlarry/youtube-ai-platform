@@ -58,7 +58,8 @@ jobs:
             GOOGLE_CLIENT_ID:LATEST
             GOOGLE_CLIENT_SECRET:LATEST
       - name: Show Deployed URL
-        run: echo "Service deployed to: ${{ steps.deploy.outputs.url }}"
+        run: |
+          echo "Service deployed to: ${{ steps.deploy.outputs.url }}"
 
       - name: Clean up old revisions
         if: success()
