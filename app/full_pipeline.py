@@ -7,6 +7,7 @@ from app.services.gcs_utils import \
     upload_to_gcs  # Assumes a new utility for GCS
 from app.services.script_generator_gemini import generate_script_with_gemini
 from app.services.tts_google import synthesize_speech_google
+from app.services.video_generator import generate_video_from_assets
 
 
 def run_video_production_pipeline(video: Video, advanced=False):
@@ -46,7 +47,20 @@ def run_video_production_pipeline(video: Video, advanced=False):
         print(f"Detailed error from Google Cloud: {e.message}")
         raise
 
-    # ... Subsequent steps would follow ...
+    # 4. Generate Video from script and audio
+    print(f"[Pipeline] Generating video for Video ID: {video.id}...")
+    # This function will take the script and audio URI and produce a video file
+    final_video_content = generate_video_from_assets(script, audio_gcs_uri)
+    print(f"[Pipeline] Video generation successful for Video ID: {video.id}")
+
+    # 5. Upload final video to GCS
+    # Note: The 'upload_to_gcs' utility may need to be updated to handle
+    # the 'video/mp4' content type if it's currently hardcoded for audio.
+    video_blob_name = f"videos/{video.id}/final_video.mp4"
+    video_gcs_uri = upload_to_gcs(
+        final_video_content, settings.GCS_BUCKET_NAME, video_blob_name
+    )
+    print(f"[Pipeline] Final video uploaded to: {video_gcs_uri}")
 
     print(f"[Pipeline] Pipeline complete for Video ID: {video.id}.")
 
