@@ -14,3 +14,4 @@ Pillow
 google-cloud-tasks
 google-cloud-storage
 google-cloud-aiplatform
+google-cloud-texttospeech
