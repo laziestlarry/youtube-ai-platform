@@ -1,0 +1,45 @@
+/Users/pq/youtube_ai_app_v2.5/
+├── app/
+│   ├── backend/
+│   │   ├── database/
+│   │   ├── routers/
+│   │   ├── __init__.py
+│   │   ├── dependencies.py
+│   │   ├── main.py
+│   │   ├── schemas.py
+│   │   └── tasks.py
+│   └── frontend/
+│       ├── dashboard_concept.html
+│       └── manage_blueprints.html
+├── Dockerfile                  <-- Should be here
+├── docker-compose.yml          <-- Should be here
+├── requirements.txt            <-- Should be here
+└── outputs/                    <-- For generated files
+
+
+
+
+
+
+
+
+/Users/pq/youtube_ai_app_v2.5/
+├── app/
+│   ├── backend/
+│   │   ├── database/
+│   │   │   └── models.py         # (Updated)
+│   │   ├── routers/
+│   │   │   ├── video_creation.py # (Updated)
+│   │   │   ├── blueprints.py     # (New)
+│   │   │   └── users.py          # (New)
+│   │   ├── services/
+│   │   │   └── ... (your existing services)
+│   │   ├── __init__.py
+│   │   ├── main.py               # (New)
+│   │   └── tasks.py              # (New)
+│   ├── frontend/
+│   │   ├── dashboard_concept.html # (Updated)
+│   │   └── manage_blueprints.html # (New)
+├── Dockerfile                  # (New)
+├── docker-compose.yml          # (New)
+└── requirements.txt            # (New)

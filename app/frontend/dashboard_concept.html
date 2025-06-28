@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Video Generation Dashboard</title>
+    <style>
+        :root {
+            --primary-color: #4a47a3;
+            --secondary-color: #706fd3;
+            --background-color: #f4f4f9;
+            --card-background: #ffffff;
+            --text-color: #333;
+            --light-text-color: #666;
+            --border-color: #e0e0e0;
+            --success-color: #2ecc71;
+            --processing-color: #f39c12;
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            font-family: var(--font-family);
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+        .card {
+            background-color: var(--card-background);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid var(--border-color);
+        }
+        .blueprint-selector {
+            display: flex;
+            gap: 1rem;
+        }
+        h1, h2 {
+            color: var(--primary-color);
+            margin-top: 0;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        input[type="text"], select, input[type="password"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus, select:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        .help-text {
+            font-size: 0.85rem;
+            color: var(--light-text-color);
+            margin-top: 0.25rem;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+        }
+        .checkbox-group input {
+            margin-right: 0.5rem;
+        }
+        .options-panel {
+            background-color: #f9f9fd;
+            border: 1px solid #e0e0f0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            display: none; /* Hidden by default, shown with JS */
+        }
+        .brand-kit-toggle label {
+            font-weight: 600;
+            font-size: 1.05rem;
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .btn:hover {
+            background-color: var(--secondary-color);
+        }
+        .btn.loading {
+            background-color: var(--secondary-color);
+            cursor: not-allowed;
+        }
+        .video-list .video-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .video-list .video-item:last-child {
+            border-bottom: none;
+        }
+        .video-title {
+            font-weight: 500;
+        }
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: white;
+        }
+        .status-badge.completed { background-color: var(--success-color); }
+        .status-badge.processing { background-color: var(--processing-color); }
+        .status-badge.queued { background-color: var(--processing-color); }
+
+        /* Additional styles for asset creation section */
+        .radio-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .radio-group input[type="radio"] {
+            margin-right: 0.5rem;
+        }
+        .radio-group label {
+            margin-bottom: 0;
+            font-weight: normal;
+        }
+        .partner-links {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .btn-partner {
+            flex-grow: 1;
+            text-align: center;
+            padding: 0.75rem;
+            border-radius: 8px;
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            transition: opacity 0.3s;
+        }
+        .btn-partner:hover { opacity: 0.9; }
+        .btn-partner.canva { background-color: #00c4cc; }
+        .btn-partner.figma { background-color: #f24e1e; }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            background-color: #f9f9fd;
+        }
+
+        /* Styles for the new Brand Showcase */
+        .animation-preview {
+            background-color: #e0e0f0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1.5rem auto;
+            max-width: 300px;
+            height: 170px; /* 16:9 aspect ratio for a 300px width */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .animation-preview img, .animation-preview video {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 4px;
+        }
+        .effects-picker {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        .effects-picker span {
+            color: var(--light-text-color);
+            font-weight: 500;
+            margin-right: 0.5rem;
+        }
+        .btn-effect {
+            background-color: #f0f0f0;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.5rem 1rem;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-effect:hover {
+            background-color: #e5e5e5;
+            border-color: #ccc;
+        }
+        .btn-effect.active {
+            background-color: var(--secondary-color);
+            color: white;
+            border-color: var(--secondary-color);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Creator's Command Center</h1>
+
+        <!-- New Card: Brand Showcase. Hidden by default, shown via JS if animation exists. -->
+        <div id="brand-showcase" class="card" style="display: none; text-align: center;">
+            <h2 id="welcome-message">Welcome Back!</h2>
+            <p class="help-text" style="font-size: 1rem;">Here's your brand in action. You can use this animated logo as an intro in your videos.</p>
+            <div class="animation-preview">
+                <!-- The generated GIF or video will be loaded here -->
+                <img id="brand-animation" src="" alt="Your animated brand logo">
+            </div>
+            <div class="effects-picker">
+                <span>Try a different effect:</span>
+                <button class="btn-effect active">Pulse</button>
+                <button class="btn-effect">Fade In</button>
+                <button class="btn-effect">Slide Up</button>
+            </div>
+        </div>
+
+        <!-- Card for selecting a blueprint -->
+        <div class="card">
+            <h2>1. Start with a Blueprint</h2>
+            <div class="form-group blueprint-selector">
+                <select id="blueprint-select" style="flex-grow: 1;">
+                    <option value="new">-- Create a New Video Blueprint --</option>
+                    <option value="1">Blueprint: Weekly News Roundup</option>
+                    <option value="2">Blueprint: History Deep Dives</option>
+                </select>
+                <a href="/manage_blueprints.html" class="btn" style="width: auto; padding: 0.75rem 1.5rem; text-decoration: none;">Manage Blueprints</a>
+            </div>
+            <p class="help-text">Blueprints save your brand kit, styles, and settings to speed up creation for your video series.</p>
+        </div>
+
+        <!-- Card for the main creation form -->
+        <div id="creation-form" class="card">
+            <h2 id="form-title">2. Provide Video Details</h2>
+            <div class="form-group">
+                <label for="video-title">Video Title</label>
+                <input type="text" id="video-title" placeholder="e.g., The History of Ancient Rome">
+            </div>
+
+            <!-- This section allows users to use partner apps for asset creation -->
+            <h3>Visuals & Branding</h3>
+            <div class="form-group">
+                <label>Scene Content Source</label>
+                <div class="radio-group">
+                    <input type="radio" id="visuals-ai" name="visuals-source" value="ai" checked>
+                    <label for="visuals-ai">Let the AI generate visuals automatically</label>
+                </div>
+                <div class="radio-group">
+                    <input type="radio" id="visuals-custom" name="visuals-source" value="custom">
+                    <label for="visuals-custom">I will provide scene-specific visuals</label>
+                </div>
+            </div>
+
+            <div id="custom-assets-panel" class="options-panel">
+                <p class="help-text" style="margin-top:0; margin-bottom: 1rem;">Use our pre-sized templates on your favorite platform, then upload your scene-by-scene assets here.</p>
+                <div class="partner-links">
+                    <!-- NOTE: These links would point to your actual templates -->
+                    <a href="#" target="_blank" class="btn-partner canva">Create on Canva (16:9)</a>
+                    <a href="#" target="_blank" class="btn-partner figma">Create on Figma (16:9)</a>
+                </div>
+                <div class="form-group">
+                    <label for="asset-upload">Upload Your Scene Assets</label>
+                    <input type="file" id="asset-upload" multiple>
+                </div>
+            </div>
+
+            <!-- This section allows users to apply their saved Brand Kit -->
+            <div class="form-group">
+                <div class="checkbox-group brand-kit-toggle">
+                    <input type="checkbox" id="apply-brand-kit">
+                    <label for="apply-brand-kit">Apply My Brand Kit (Logo, Slogan, etc.)</label>
+                </div>
+            </div>
+
+            <div id="brand-kit-panel" class="options-panel">
+                <p class="help-text" style="margin-top:0; margin-bottom: 1rem;">These assets can be saved to your profile and applied to any video. Upload a transparent PNG for the best results.</p>
+                <div class="form-group"><label for="brand-logo">Brand Logo / Watermark</label><input type="file" id="brand-logo"></div>
+                <div class="form-group" style="margin-bottom: 0;"><label for="brand-slogan">Brand Slogan</label><input type="text" id="brand-slogan" placeholder="e.g., Quality Content, Every Time.">
+                </div>
+            </div>
+
+            <!-- This section guides the user to select their preferred generation engine -->
+            <h3>Video Style & Provider</h3>
+            <div class="form-group">
+                <label for="video-provider">Video Generation Provider</label>
+                <select id="video-provider">
+                    <option value="standard">Standard (Simple Stock Footage)</option>
+                    <option value="fliki">Premium Motion (Fliki)</option>
+                    <option value="pictory">Premium Motion (Pictory)</option>
+                </select>
+                <p class="help-text">Choose 'Standard' for basic videos, or select a premium provider for advanced motion graphics. Requires your own API key.</p>
+            </div>
+            
+            <!-- This panel only appears when a premium provider is selected. It also includes logic for saving/using stored API keys for registered users. -->
+            <div id="api-key-panel" class="options-panel">
+                <div class="form-group">
+                    <label for="api-key">Your Provider API Key (not stored)</label>
+                    <input type="password" id="api-key" placeholder="Enter your API key here">
+                </div>
+            </div>
+
+            <!-- This section provides audio enhancement options -->
+            <h3>Audio & Music</h3>
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="add-music">
+                    <label for="add-music">Add Background Music</label>
+                </div>
+            </div>
+
+            <!-- A clear, final call-to-action button -->
+            <button id="generate-btn" class="btn">Generate Video</button>
+        </div>
+
+        <!-- Card to show video history and status, providing feedback and success confirmation -->
+        <div class="card">
+            <h2>Content Pipeline</h2>
+            <div class="video-list">
+                <div class="video-item">
+                    <span class="video-title">The Future of Renewable Energy</span>
+                    <span class="status-badge completed">Completed</span>
+                </div>
+                <button id="logout-btn" class="btn" style="background-color: var(--error-color); margin-top: 1.5rem; width: auto;">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // This simple script demonstrates the interactive UI logic.
+        // A real implementation would use a framework like React, Vue, or Svelte.
+        const providerSelect = document.getElementById('video-provider');
+        const apiKeyPanel = document.getElementById('api-key-panel');
+        const generateBtn = document.getElementById('generate-btn');
+        const customVisualsRadio = document.getElementById('visuals-custom');
+        const aiVisualsRadio = document.getElementById('visuals-ai');
+        const customAssetsPanel = document.getElementById('custom-assets-panel');
+        const applyBrandKitCheckbox = document.getElementById('apply-brand-kit');
+        const brandKitPanel = document.getElementById('brand-kit-panel');
+        const blueprintSelect = document.getElementById('blueprint-select');
+
+        // --- Welcome Showcase Logic ---
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
+            window.location.href = '/login';
+        }
+
+        async function fetchWithAuth(url, options = {}) {
+            const headers = {
+                ...options.headers,
+                'Authorization': `Bearer ${token}`
+            };
+
+            const response = await fetch(url, { ...options, headers });
+
+            if (response.status === 401) {
+                // Token is invalid or expired
+                localStorage.removeItem('accessToken');
+                alert('Your session has expired. Please log in again.');
+                window.location.href = '/login';
+                throw new Error('Unauthorized');
+            }
+            return response;
+        }
+
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            localStorage.removeItem('accessToken');
+            window.location.href = '/login';
+        });
+
+        // --- Data Loading on Page Start ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Load user data for the welcome showcase
+            try {
+                const userResponse = await fetchWithAuth('/api/users/me');
+                const userData = await userResponse.json();
+                const showcase = document.getElementById('brand-showcase');
+                if (userData.brand_kit && userData.brand_kit.logo_animation_path) {
+                    showcase.style.display = 'block';
+                    document.getElementById('welcome-message').textContent = `Welcome Back, ${userData.username}!`;
+                    // Construct the correct URL using the new /media mount point
+                    const animationUrl = `/media/${userData.brand_kit.logo_animation_path}`;
+                    document.getElementById('brand-animation').src = animationUrl.replace(/\\/g, '/'); // Ensure forward slashes
+                }
+            } catch (error) {
+                console.error("Could not load user data:", error);
+            }
+
+            // Load blueprints for the dropdown
+            try {
+                const bpResponse = await fetchWithAuth('/api/blueprints');
+                const blueprints = await bpResponse.json();
+                blueprintSelect.innerHTML = '<option value="new">-- Create a New Video Blueprint --</option>'; // Clear old options
+                blueprints.forEach(bp => {
+                    const option = document.createElement('option');
+                    option.value = bp.id;
+                    option.textContent = `Blueprint: ${bp.name}`;
+                    option.dataset.provider = bp.video_provider; // Store data on the option
+                    option.dataset.applyBrandKit = bp.apply_brand_kit;
+                    blueprintSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error("Could not load blueprints:", error);
+            }
+        });
+
+        function addVideoToList(title, status, jobId) {
+            const videoList = document.querySelector('.video-list');
+            const newItem = document.createElement('div');
+            newItem.classList.add('video-item');
+            newItem.dataset.jobId = jobId; // Store job ID for future status checks
+            newItem.innerHTML = `
+                <span class="video-title">${title}</span>
+                <span class="status-badge queued">${status}</span>
+            `;
+            videoList.prepend(newItem); // Add new item to the top of the list
+        }
+
+        // --- Blueprint Logic ---
+        blueprintSelect.addEventListener('change', () => {
+            const selectedOption = blueprintSelect.options[blueprintSelect.selectedIndex];
+            if (blueprintSelect.value !== 'new') {
+                document.getElementById('form-title').textContent = `2. Create '${selectedOption.text.replace('Blueprint: ', '')}' Video`;
+                document.getElementById('video-provider').value = selectedOption.dataset.provider;
+                document.getElementById('apply-brand-kit').checked = (selectedOption.dataset.applyBrandKit === 'true');
+                applyBrandKitCheckbox.dispatchEvent(new Event('change')); // Trigger panel visibility
+            } else {
+                // Reset to defaults if "New" or another blueprint is selected
+                document.getElementById('form-title').textContent = "2. Provide Video Details";
+                document.getElementById('video-provider').value = 'standard';
+                document.getElementById('apply-brand-kit').checked = false;
+                applyBrandKitCheckbox.dispatchEvent(new Event('change'));
+            }
+            providerSelect.dispatchEvent(new Event('change')); // Ensure API panel visibility is correct
+        });
+
+        providerSelect.addEventListener('change', () => {
+            // Show the API key input only if a premium provider is chosen
+            if (providerSelect.value === 'fliki' || providerSelect.value === 'pictory') {
+                apiKeyPanel.style.display = 'block';
+            } else {
+                apiKeyPanel.style.display = 'none';
+            }
+        });
+
+        function toggleCustomAssetsPanel() {
+            if (customVisualsRadio.checked) {
+                customAssetsPanel.style.display = 'block';
+            } else {
+                customAssetsPanel.style.display = 'none';
+            }
+        }
+
+        customVisualsRadio.addEventListener('change', toggleCustomAssetsPanel);
+        aiVisualsRadio.addEventListener('change', toggleCustomAssetsPanel);
+
+        applyBrandKitCheckbox.addEventListener('change', () => {
+            if (applyBrandKitCheckbox.checked) {
+                brandKitPanel.style.display = 'block';
+            } else {
+                brandKitPanel.style.display = 'none';
+            }
+        });
+
+        generateBtn.addEventListener('click', async () => {
+            // Provide visual feedback that the process has started
+            generateBtn.textContent = 'Generating... Please wait.';
+            generateBtn.classList.add('loading');
+            generateBtn.disabled = true;
+
+            const formData = new FormData();
+
+            // --- Gather all form data ---
+            const videoTitle = document.getElementById('video-title').value;
+            const videoProvider = document.getElementById('video-provider').value;
+            const apiKey = document.getElementById('api-key').value;
+            const visualsSource = document.querySelector('input[name="visuals-source"]:checked').value;
+            const addMusic = document.getElementById('add-music').checked;
+            const applyBrandKit = document.getElementById('apply-brand-kit').checked;
+            const brandSlogan = document.getElementById('brand-slogan').value;
+            const sceneAssetFiles = document.getElementById('asset-upload').files;
+            const brandLogoFile = document.getElementById('brand-logo').files[0];
+
+            // --- Basic Frontend Validation ---
+            if (!videoTitle) {
+                alert('Please enter a video title.');
+                generateBtn.textContent = 'Generate Video';
+                generateBtn.classList.remove('loading');
+                generateBtn.disabled = false;
+                return;
+            }
+
+            // --- Append data to FormData object ---
+            formData.append('video_title', videoTitle);
+            formData.append('video_provider', videoProvider);
+            formData.append('visuals_source', visualsSource);
+            formData.append('add_music', addMusic);
+            formData.append('apply_brand_kit', applyBrandKit);
+            if (apiKey) formData.append('api_key', apiKey);
+            if (applyBrandKit && brandSlogan) formData.append('brand_slogan', brandSlogan);
+            if (applyBrandKit && brandLogoFile) formData.append('brand_logo', brandLogoFile);
+            if (visualsSource === 'custom' && sceneAssetFiles.length > 0) {
+                for (const file of sceneAssetFiles) {
+                    formData.append('scene_assets', file);
+                }
+            }
+
+            try {
+                const response = await fetchWithAuth('/api/videos/generate', {
+                    method: 'POST',
+                    body: formData,
+                    // For FormData, the browser sets the 'Content-Type' to 'multipart/form-data' automatically.
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    // Handle errors sent from the FastAPI backend
+                    throw new Error(result.detail || `HTTP error! status: ${response.status}`);
+                }
+
+                alert(result.message);
+                addVideoToList(videoTitle, 'Queued', result.job_id);
+
+            } catch (error) {
+                console.error('Error starting video generation:', error);
+                alert(`Error: ${error.message}`);
+            } finally {
+                // Always reset the button state
+                generateBtn.textContent = 'Generate Video';
+                generateBtn.classList.remove('loading');
+                generateBtn.disabled = false;
+            }
+        });
+    </script>
+
+</body>
+</html>

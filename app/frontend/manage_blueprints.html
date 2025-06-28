@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Blueprints</title>
+    <style>
+        /* You can reuse the styles from dashboard_concept.html */
+        :root {
+            --primary-color: #4a47a3;
+            --background-color: #f4f4f9;
+            --card-background: #ffffff;
+            --text-color: #333;
+            --border-color: #e0e0e0;
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            font-family: var(--font-family);
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 2rem;
+        }
+        .container { max-width: 900px; margin: auto; }
+        .card { background-color: var(--card-background); border-radius: 12px; padding: 2rem; margin-bottom: 2rem; }
+        h1 { color: var(--primary-color); text-align: center; }
+        .blueprint-list .item { display: flex; justify-content: space-between; padding: 1rem; border-bottom: 1px solid var(--border-color); }
+        a { color: var(--primary-color); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>Manage Your Blueprints</h1>
+            <p style="text-align: center;"><a href="/">&larr; Back to Dashboard</a></p>
+            <div id="blueprint-list" class="blueprint-list">
+                <!-- Blueprints will be loaded here by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const listElement = document.getElementById('blueprint-list');
+            try {
+                const response = await fetch('/api/blueprints');
+                if (!response.ok) throw new Error('Failed to load blueprints.');
+                const blueprints = await response.json();
+
+                if (blueprints.length === 0) {
+                    listElement.innerHTML = '<p>You have no blueprints yet. Create one from the dashboard!</p>';
+                    return;
+                }
+
+                blueprints.forEach(bp => {
+                    const item = document.createElement('div');
+                    item.classList.add('item');
+                    item.innerHTML = `<span>${bp.name}</span><button>Delete</button>`;
+                    listElement.appendChild(item);
+                });
+            } catch (error) {
+                listElement.innerHTML = `<p style="color: red;">${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>

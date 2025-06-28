@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+celery
+redis
+moviepy
+requests
+alembic
+passlib[bcrypt]
+python-jose[cryptography]
+httpx
+fastapi-mail
+slowapi
+supervisor

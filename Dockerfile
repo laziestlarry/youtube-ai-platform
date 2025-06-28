@@ -1,43 +1,47 @@
-# Stage 1: Build the frontend assets
-FROM node:18-alpine AS builder
+# --- Builder Stage ---
+# This stage installs dependencies into a virtual environment.
+FROM python:3.10-slim as builder
 
-# Set the working directory for the frontend app
-WORKDIR /app/frontend/dev_dashboard
+# Set the working directory in the container
+WORKDIR /usr/src/app
 
-# Copy package.json and yarn.lock to leverage Docker layer caching
-COPY frontend/dev_dashboard/package.json frontend/dev_dashboard/yarn.lock ./
+# Create a virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# Install dependencies
-RUN yarn install --frozen-lockfile
+# Copy and install requirements
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the frontend source code
-COPY frontend/dev_dashboard/ ./
-
-# Build the React app for production
-RUN yarn build
-
-# ---
-
-# Stage 2: Build the final application image
+# --- Production Stage ---
+# This stage creates the final, smaller image.
 FROM python:3.10-slim
+WORKDIR /usr/src/app
 
-WORKDIR /app
+# Install system dependencies: ffmpeg for moviepy, redis for the broker, supervisor for process management
+RUN apt-get update && apt-get install -y ffmpeg redis-server supervisor && rm -rf /var/lib/apt/lists/*
 
-# Install system dependencies required by the application
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && \
-    rm -rf /var/lib/apt/lists/*
+# Create a non-root user to run the application
+RUN useradd --create-home appuser
 
-# Copy backend requirements and install Python dependencies
-COPY app/requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+# Copy the virtual environment from the builder stage
+COPY --from=builder /opt/venv /opt/venv
 
-# Copy the entire application source code into the image
-COPY . .
+# Copy application code
+COPY ./app ./app
+COPY ./alembic ./alembic
+COPY alembic.ini .
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY entrypoint.sh /usr/src/app/entrypoint.sh
 
-# Copy the built frontend assets from the 'builder' stage
-COPY --from=builder /app/frontend/dev_dashboard/build /app/app/static
+# Set environment and permissions
+ENV PATH="/opt/venv/bin:$PATH"
+RUN chmod +x /usr/src/app/entrypoint.sh
+RUN chown -R appuser:appuser /usr/src/app
+USER appuser
 
-# Expose the port the app runs on and define the startup command
-EXPOSE 8000
-CMD ["uvicorn", "app.backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Expose the port the app runs on
+EXPOSE 8080
+
+# Define the command to run the application
+CMD ["/usr/src/app/entrypoint.sh"]

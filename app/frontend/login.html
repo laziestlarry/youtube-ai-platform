@@ -1,0 +1,97 @@
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .google-btn {
+            background-color: #4285F4;
+        }
+        .google-btn:hover {
+            background-color: #357ae8;
+        }
+        .or-separator {
+            text-align: center;
+            margin: 1.5rem 0;
+            color: var(--light-text-color);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .or-separator::before, .or-separator::after {
+            content: '';
+            flex-grow: 1;
+            height: 1px;
+            background-color: var(--border-color);
+        }
+        .btn:hover { background-color: var(--secondary-color); }
+        .error-message {
+            color: var(--error-color);
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required>
+            </div>
+            <div style="text-align: right; margin-top: -1rem; margin-bottom: 1.5rem;">
+                <a href="/forgot-password" style="color: var(--secondary-color); font-size: 0.9rem;">Forgot Password?</a>
+            </div>
+            <button type="submit" class="btn">Login</button>
+        </form>
+        <div class="or-separator">OR</div>
+        <button id="google-login-btn" class="btn google-btn">Login with Google</button>
+        <p id="error-message" class="error-message"></p>
+    </div>
+
+    <script>
+        const loginForm = document.getElementById('login-form');
+        const googleLoginBtn = document.getElementById('google-login-btn');
+        const errorMessage = document.getElementById('error-message');
+
+        // Redirect if already logged in
+        if (localStorage.getItem('accessToken')) {
+            window.location.href = '/';
+        }
+
+        // --- Google Login ---
+        googleLoginBtn.addEventListener('click', () => {
+            // IMPORTANT: Replace with your actual Google Client ID
+            const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+            const GOOGLE_REDIRECT_URI = 'http://localhost:8000/login';
+
+            const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+            authUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID);
+            authUrl.searchParams.set('redirect_uri', GOOGLE_REDIRECT_URI);
+            authUrl.searchParams.set('response_type', 'code');
+            authUrl.searchParams.set('scope', 'openid email profile');
+            authUrl.searchParams.set('access_type', 'offline');
+            authUrl.search_params.set('prompt', 'consent');
+
+            window.location.href = authUrl.toString();
+        });
+
+        // --- Handle Google Redirect ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+
+            if (code) {
+                try {
+                    const response = await fetch('/api/auth/google', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code: code })
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.detail || 'Google login failed');
+                    
+                    localStorage.setItem('accessToken', data.access_token);
+                    window.history.replaceState({}, document.title, "/login"); // Clean URL
+                    window.location.href = '/'; // Redirect to dashboard
+                } catch (error) {
+                    errorMessage.textContent = error.message;
+                    errorMessage.style.display = 'block';
+                    window.history.replaceState({}, document.title, "/login");
+                }
+            }
+        });
+
+        // --- Standard Password Login ---
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMessage.style.display = 'none';
+

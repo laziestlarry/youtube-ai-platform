@@ -1,0 +1,56 @@
+name: Deploy Low-Cost Test Environment
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GAR_LOCATION: us-central1
+  SERVICE_NAME: 'youtube-ai-platform-test' # A single service name for testing
+  REGION: us-central1
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy Test App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev
+
+      - name: Build and Push Docker image
+        run: |-
+          docker build --tag "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/image:$GITHUB_SHA" .
+          docker push "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/image:$GITHUB_SHA"
+
+      - name: Deploy All-in-One Service to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v1
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.REGION }}
+          image: "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/image:$GITHUB_SHA"
+          secrets:
+            - name: SECRET_KEY
+              key: LATEST
+            - name: GOOGLE_CLIENT_ID
+              key: LATEST
+            - name: GOOGLE_CLIENT_SECRET
+              key: LATEST
+      
+      - name: Show Deployed URL
+        run: echo "Service deployed to: ${{ steps.deploy.outputs.url }}"
