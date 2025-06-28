@@ -13,3 +13,4 @@ ffmpeg-python
 Pillow
 google-cloud-tasks
 google-cloud-storage
+google-cloud-aiplatform
