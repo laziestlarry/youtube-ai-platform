@@ -4,7 +4,7 @@ from app.backend.core.config import settings
 from app.backend.models.video import Video
 from app.services.gcs_utils import \
     upload_to_gcs  # Assumes a new utility for GCS
-from app.services.script_generator_vertex import generate_script_with_gemini
+from app.services.script_generator_gemini import generate_script_with_gemini
 from app.services.tts_google import synthesize_speech_google
 
 
