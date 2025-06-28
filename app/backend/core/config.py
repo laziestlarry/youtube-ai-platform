@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     # 60 minutes * 24 hours * 8 days = 8 days
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
 
-    GEMINI_API_KEY: str  # Added for direct Gemini access if needed
+    GEMINI_API_KEY: str | None = None  # Optional, as Vertex AI uses service account auth.
     SERPER_API_KEY: str | None = None  # Added for consistency with mini_app
     # For production, this should be a Cloud SQL connection string, e.g.,
     # "postgresql+asyncpg://user:pass@host:port/db"
