@@ -1,8 +1,8 @@
-name: Build and Deploy to Google Cloud
+name: Deploy to Staging
 
 on:
   push:
-    branches:
+    branches: # Trigger on push to your main development branch
       - main
 
 permissions:
@@ -10,17 +10,21 @@ permissions:
   id-token: 'write'
 
 env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  GAR_LOCATION: us-central1 # e.g., us-central1
-  SERVICE_NAME_WEB: 'creator-cmd-center-web'
-  SERVICE_NAME_WORKER: 'creator-cmd-center-worker'
-  REGION: us-central1 # e.g., us-central1
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }} # Ensure you have staging-specific secrets if needed
+  GAR_LOCATION: us-central1
+  # Use a generic name for the Artifact Registry repo, as the image is shared
+  GAR_REPO_NAME: 'creator-cmd-center-staging'
+  SERVICE_NAME_WEB: 'creator-cmd-center-staging-web'
+  SERVICE_NAME_WORKER: 'creator-cmd-center-staging-worker'
+  REGION: us-central1
 
 jobs:
   build-and-push:
+    name: 'Build and Push Image'
+    environment: staging # Use the 'staging' GitHub Environment for secrets
     uses: ./.github/workflows/reusable-build.yml
     with:
-      service_name: 'creator-cmd-center-web'
+      service_name: ${{ env.GAR_REPO_NAME }}
     secrets: inherit
 
   run-migrations:
@@ -28,6 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-push # Run after the image is built
 
+    environment: staging # Scope this job to the staging environment
     steps:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v1
@@ -44,12 +49,17 @@ jobs:
           region: ${{ env.REGION }}
           container_command: "alembic"
           container_args: "upgrade,head"
-          secrets: "DATABASE_URL:LATEST"
+          secrets: "DATABASE_URL:LATEST" # Use a staging DB secret
 
   deploy-services:
-    name: 'Deploy Web and Worker Services'
+    name: 'Deploy Web and Worker Services to Staging'
     runs-on: ubuntu-latest
     needs: run-migrations # Run after migrations are complete
+    environment: # Scope this job to the staging environment and set the URL
+      name: staging
+      url: ${{ steps.deploy-web.outputs.url }}
+    outputs:
+      url: ${{ steps.deploy-web.outputs.url }}
 
     steps:
       - name: Authenticate to Google Cloud
@@ -60,7 +70,7 @@ jobs:
 
       - name: Set Artifact Registry Cleanup Policy
         run: |
-          gcloud artifacts repositories set-cleanup-policies ${{ env.SERVICE_NAME_WEB }} \
+          gcloud artifacts repositories set-cleanup-policies ${{ env.GAR_REPO_NAME }} \
             --project=${{ env.PROJECT_ID }} \
             --location=${{ env.GAR_LOCATION }} \
             --policy='{
@@ -78,9 +88,9 @@ jobs:
         with:
           service: ${{ env.SERVICE_NAME_WEB }}
           region: ${{ env.REGION }}
-          min_instances: 0 # Scale to zero to save costs
+          min_instances: 0
+          vpc_connector: 'main-app-connector' # Ensure staging has access to the VPC
           image: ${{ needs.build-and-push.outputs.image_tag }}
-          # Secrets from Secret Manager will be mounted as environment variables
           secrets: |-
             DATABASE_URL:LATEST
             REDIS_URL:LATEST
@@ -94,9 +104,9 @@ jobs:
         with:
           service: ${{ env.SERVICE_NAME_WORKER }}
           region: ${{ env.REGION }}
-          min_instances: 0 # Scale to zero to save costs
+          min_instances: 0
+          vpc_connector: 'main-app-connector'
           image: ${{ needs.build-and-push.outputs.image_tag }}
-          # The worker doesn't expose a port and runs the celery command
           no_traffic: true
           container_command: "celery"
           container_args: "-A,app.backend.tasks.celery_app,worker,--loglevel=info"
@@ -107,8 +117,8 @@ jobs:
 
       - name: Show Deployed URLs
         run: |-
-          echo "Web service deployed to: ${{ steps.deploy-web.outputs.url }}"
-          echo "Worker service deployed."
+          echo "Staging Web service deployed to: ${{ steps.deploy-web.outputs.url }}"
+          echo "Staging Worker service deployed."
 
       - name: Clean up old revisions
         if: success()

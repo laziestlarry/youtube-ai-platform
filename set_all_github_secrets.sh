@@ -6,7 +6,7 @@ REPO="laziestlarry/youtube-ai-platform"
 # Prompt for DATABASE_URL
 read -p "Enter your DATABASE_URL (or press Enter to use the recommended default): " DBURL
 if [ -z "$DBURL" ]; then
-  DBURL="postgresql+psycopg2://postgres:lakakula@/appdb?host=/cloudsql/youtube-ai-platform-464016:us-central1:youtube-ai-db"
+DATABASE_URL="postgresql+asyncpg://db_user:lakakula@127.0.0.1:5432/creator_cmd_center_db"
 fi
 
 # Set secrets (strip spaces from names)
