@@ -21,7 +21,8 @@ env:
 jobs:
   build-and-push:
     name: 'Build and Push Image'
-    environment: staging # Use the 'staging' GitHub Environment for secrets
+    environment:
+      name: staging # Use the 'staging' GitHub Environment for secrets
     uses: ./.github/workflows/reusable-build.yml
     with:
       service_name: ${{ env.GAR_REPO_NAME }}
