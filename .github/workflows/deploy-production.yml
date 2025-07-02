@@ -13,8 +13,8 @@ env:
   GAR_LOCATION: us-central1 # e.g., us-central1
   SERVICE_NAME_WEB: 'creator-cmd-center-web'
   SERVICE_NAME_WORKER: 'creator-cmd-center-worker'
-  API_SA_EMAIL: 'api-service-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com'
-  WORKER_SA_EMAIL: 'worker-service-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com'
+  API_SA_EMAIL: 'api-service-sa@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com'
+  WORKER_SA_EMAIL: 'worker-service-sa@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com'
   REGION: us-central1 # e.g., us-central1
 
 jobs:
