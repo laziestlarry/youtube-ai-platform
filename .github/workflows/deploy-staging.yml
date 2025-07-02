@@ -16,6 +16,8 @@ env:
   GAR_REPO_NAME: 'creator-cmd-center-staging'
   SERVICE_NAME_WEB: 'creator-cmd-center-staging-web'
   SERVICE_NAME_WORKER: 'creator-cmd-center-staging-worker'
+  API_SA_EMAIL: 'api-service-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com'
+  WORKER_SA_EMAIL: 'worker-service-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com'
   REGION: us-central1
 
 jobs:
@@ -24,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging # Scope this job to the staging environment
     outputs:
-      image_tag: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPO_NAME }}/${{ env.GAR_REPO_NAME }}:${{ github.sha }}
+      image_tag: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPO_NAME }}/image:${{ github.sha }}
 
     steps:
       - name: Checkout
@@ -49,7 +51,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPO_NAME }}/${{ env.GAR_REPO_NAME }}:${{ github.sha }}
+          tags: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPO_NAME }}/image:${{ github.sha }}
 
   run-migrations:
     name: 'Run Database Migrations'

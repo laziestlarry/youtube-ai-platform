@@ -1,27 +1,29 @@
-name: Deploy to Production
+name: Deploy to Test Environment
 
 on:
-  workflow_dispatch: # This makes the workflow manual
+  push:
+    branches: # Trigger on push to your develop branch
+      - develop
 
 permissions:
   contents: 'read'
   id-token: 'write'
 
 env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  GAR_REPO_NAME: 'creator-cmd-center-prod' # Use a dedicated repo name for production images
-  GAR_LOCATION: us-central1 # e.g., us-central1
-  SERVICE_NAME_WEB: 'creator-cmd-center-web'
-  SERVICE_NAME_WORKER: 'creator-cmd-center-worker'
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }} # Ensure you have test-specific secrets if needed
+  GAR_LOCATION: us-central1
+  GAR_REPO_NAME: 'creator-cmd-center-test'
+  SERVICE_NAME_WEB: 'creator-cmd-center-test-web'
+  SERVICE_NAME_WORKER: 'creator-cmd-center-test-worker'
   API_SA_EMAIL: 'api-service-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com'
   WORKER_SA_EMAIL: 'worker-service-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com'
-  REGION: us-central1 # e.g., us-central1
+  REGION: us-central1
 
 jobs:
   build-and-push:
-    name: 'Build and Push Production Image'
+    name: 'Build and Push Image'
     runs-on: ubuntu-latest
-    environment: production # Scope this job to the production environment
+    environment: test # Scope this job to the test environment
     outputs:
       image_tag: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPO_NAME }}/image:${{ github.sha }}
 
@@ -39,6 +41,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Login to Google Artifact Registry
+        id: docker-login
         run: gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://${{ env.GAR_LOCATION }}-docker.pkg.dev
 
       - name: Build and Push Docker Image
@@ -53,7 +56,7 @@ jobs:
     name: 'Run Database Migrations'
     runs-on: ubuntu-latest
     needs: build-and-push # Run after the image is built
-    environment: production # Scope this job to the production environment
+    environment: test # Scope this job to the test environment
 
     steps:
       - name: Authenticate to Google Cloud
@@ -72,14 +75,16 @@ jobs:
           region: ${{ env.REGION }}
           container_command: "alembic"
           container_args: "upgrade,head"
-          secrets: "DATABASE_URL:LATEST"
+          secrets: "DATABASE_URL:LATEST" # Use a test DB secret
 
   deploy-services:
-    name: 'Deploy Web and Worker Services'
+    name: 'Deploy Web and Worker Services to Test'
     runs-on: ubuntu-latest
     needs: run-migrations # Run after migrations are complete
     environment: # Set the deployment URL for the environment
-      name: production
+      name: test
+      url: ${{ steps.deploy-web.outputs.url }}
+    outputs:
       url: ${{ steps.deploy-web.outputs.url }}
 
     steps:
@@ -89,20 +94,6 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
 
-      - name: Set Artifact Registry Cleanup Policy
-        run: |
-          gcloud artifacts repositories set-cleanup-policies ${{ env.GAR_REPO_NAME }} \
-            --project=${{ env.PROJECT_ID }} \
-            --location=${{ env.GAR_LOCATION }} \
-            --policy='{
-                "name": "delete-untagged-after-15-days",
-                "action": {"type": "Delete"},
-                "condition": {
-                  "olderThan": "1296000s",
-                  "tagState": "UNTAGGED"
-                }
-              }'
-
       - name: Deploy Web Service
         id: deploy-web
         uses: google-github-actions/deploy-cloudrun@v1
@@ -110,10 +101,8 @@ jobs:
           service: ${{ env.SERVICE_NAME_WEB }}
           service_account: ${{ env.API_SA_EMAIL }} # Specify the runtime identity
           region: ${{ env.REGION }}
-          min_instances: 1 # For production, keep at least one instance warm
-          vpc_connector: 'main-app-connector' # Add this line
+          min_instances: 0
           image: ${{ needs.build-and-push.outputs.image_tag }}
-          # Secrets from Secret Manager will be mounted as environment variables
           secrets: |-
             DATABASE_URL:LATEST
             REDIS_URL:LATEST
@@ -128,10 +117,8 @@ jobs:
           service: ${{ env.SERVICE_NAME_WORKER }}
           service_account: ${{ env.WORKER_SA_EMAIL }} # Specify the runtime identity
           region: ${{ env.REGION }}
-          min_instances: 1 # For production, keep at least one instance warm
-          vpc_connector: 'main-app-connector' # And add this line
+          min_instances: 0
           image: ${{ needs.build-and-push.outputs.image_tag }}
-          # The worker doesn't expose a port and runs the celery command
           no_traffic: true
           container_command: "celery"
           container_args: "-A,app.backend.tasks.celery_app,worker,--loglevel=info"
@@ -142,8 +129,8 @@ jobs:
 
       - name: Show Deployed URLs
         run: |-
-          echo "Web service deployed to: ${{ steps.deploy-web.outputs.url }}"
-          echo "Worker service deployed."
+          echo "Test Web service deployed to: ${{ steps.deploy-web.outputs.url }}"
+          echo "Test Worker service deployed."
 
       - name: Clean up old revisions
         if: success()
