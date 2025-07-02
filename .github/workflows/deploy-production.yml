@@ -12,6 +12,8 @@ env:
   GAR_LOCATION: us-central1 # e.g., us-central1
   SERVICE_NAME_WEB: 'creator-cmd-center-web'
   SERVICE_NAME_WORKER: 'creator-cmd-center-worker'
+  API_SA_EMAIL: 'api-service-sa@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com'
+  WORKER_SA_EMAIL: 'worker-service-sa@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com'
   REGION: us-central1 # e.g., us-central1
 
 jobs:
@@ -37,6 +39,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v1
         with:
           service: ${{ env.SERVICE_NAME_WEB }}-migrations
+          service_account: ${{ env.API_SA_EMAIL }} # Run migrations as the API service account
           job: true # Specifies this is a Cloud Run Job
           image: ${{ needs.build-and-push.outputs.image_tag }}
           region: ${{ env.REGION }}
@@ -75,6 +78,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v1
         with:
           service: ${{ env.SERVICE_NAME_WEB }}
+          service_account: ${{ env.API_SA_EMAIL }} # Specify the runtime identity
           region: ${{ env.REGION }}
           min_instances: 0 # Scale to zero to save costs when there's no traffic
           vpc_connector: 'main-app-connector' # Add this line
@@ -92,6 +96,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v1
         with:
           service: ${{ env.SERVICE_NAME_WORKER }}
+          service_account: ${{ env.WORKER_SA_EMAIL }} # Specify the runtime identity
           region: ${{ env.REGION }}
           min_instances: 0 # Scale to zero to save costs
           vpc_connector: 'main-app-connector' # And add this line

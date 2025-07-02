@@ -39,8 +39,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Configure Docker for GAR
-        run: gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev
+      - name: Login to Google Artifact Registry
+        id: docker-login
+        run: gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://${{ env.GAR_LOCATION }}-docker.pkg.dev
 
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v4
@@ -67,6 +68,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v1
         with:
           service: ${{ env.SERVICE_NAME_WEB }}-migrations
+          service_account: ${{ env.API_SA_EMAIL }} # Run migrations as the API service account
           job: true # Specifies this is a Cloud Run Job
           image: ${{ needs.build-and-push.outputs.image_tag }}
           region: ${{ env.REGION }}
@@ -110,6 +112,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v1
         with:
           service: ${{ env.SERVICE_NAME_WEB }}
+          service_account: ${{ env.API_SA_EMAIL }} # Specify the runtime identity
           region: ${{ env.REGION }}
           min_instances: 0
           vpc_connector: 'main-app-connector' # Ensure staging has access to the VPC
@@ -126,6 +129,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v1
         with:
           service: ${{ env.SERVICE_NAME_WORKER }}
+          service_account: ${{ env.WORKER_SA_EMAIL }} # Specify the runtime identity
           region: ${{ env.REGION }}
           min_instances: 0
           vpc_connector: 'main-app-connector'
