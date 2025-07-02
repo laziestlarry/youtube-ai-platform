@@ -57,6 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: run-migrations # Run after migrations are complete
     environment: # Set the deployment URL for the environment
+      name: staging
       url: ${{ steps.deploy-web.outputs.url }}
     outputs:
       url: ${{ steps.deploy-web.outputs.url }}
