@@ -67,15 +67,13 @@ jobs:
 
       - name: Deploy Cloud Run Job for migrations
         run: |
-          gcloud run jobs create ${{ env.SERVICE_NAME_WEB }}-migrations \
-            --image=${{ needs.build-and-push.outputs.image_tag }} \
+          # Delete existing job if it exists
+          gcloud run jobs delete ${{ env.SERVICE_NAME_WEB }}-migrations \
             --region=${{ env.REGION }} \
-            --service-account=${{ env.API_SA_EMAIL }} \
-            --set-secrets=DATABASE_URL=DATABASE_URL:LATEST \
-            --command="alembic" \
-            --args="upgrade,head" \
-            --replace || \
-          gcloud run jobs update ${{ env.SERVICE_NAME_WEB }}-migrations \
+            --quiet || echo "Job doesn't exist, continuing..."
+          
+          # Create new job
+          gcloud run jobs create ${{ env.SERVICE_NAME_WEB }}-migrations \
             --image=${{ needs.build-and-push.outputs.image_tag }} \
             --region=${{ env.REGION }} \
             --service-account=${{ env.API_SA_EMAIL }} \
@@ -83,6 +81,7 @@ jobs:
             --command="alembic" \
             --args="upgrade,head"
           
+          # Execute the migration job
           gcloud run jobs execute ${{ env.SERVICE_NAME_WEB }}-migrations \
             --region=${{ env.REGION }} \
             --wait
