@@ -71,16 +71,26 @@ jobs:
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
 
       - name: Deploy Cloud Run Job for migrations
-        uses: google-github-actions/deploy-cloudrun@v1
-        with:
-          service: ${{ env.SERVICE_NAME_WEB }}-migrations
-          service_account: ${{ env.API_SA_EMAIL }} # Run migrations as the API service account
-          job: true # Specifies this is a Cloud Run Job
-          image: ${{ needs.build-and-push.outputs.image_tag }}
-          region: ${{ env.REGION }}
-          container_command: "alembic"
-          container_args: "upgrade,head"
-          secrets: "DATABASE_URL:LATEST" # Use a staging DB secret
+        run: |
+          gcloud run jobs create ${{ env.SERVICE_NAME_WEB }}-migrations \
+            --image=${{ needs.build-and-push.outputs.image_tag }} \
+            --region=${{ env.REGION }} \
+            --service-account=${{ env.API_SA_EMAIL }} \
+            --set-secrets=DATABASE_URL=DATABASE_URL:LATEST \
+            --command="alembic" \
+            --args="upgrade,head" \
+            --replace || \
+          gcloud run jobs update ${{ env.SERVICE_NAME_WEB }}-migrations \
+            --image=${{ needs.build-and-push.outputs.image_tag }} \
+            --region=${{ env.REGION }} \
+            --service-account=${{ env.API_SA_EMAIL }} \
+            --set-secrets=DATABASE_URL=DATABASE_URL:LATEST \
+            --command="alembic" \
+            --args="upgrade,head"
+          
+          gcloud run jobs execute ${{ env.SERVICE_NAME_WEB }}-migrations \
+            --region=${{ env.REGION }} \
+            --wait
 
   deploy-services:
     name: 'Deploy Web and Worker Services to Staging'
@@ -115,38 +125,34 @@ jobs:
 
       - name: Deploy Web Service
         id: deploy-web
-        uses: google-github-actions/deploy-cloudrun@v1
-        with:
-          service: ${{ env.SERVICE_NAME_WEB }}
-          service_account: ${{ env.API_SA_EMAIL }} # Specify the runtime identity
-          region: ${{ env.REGION }}
-          min_instances: 0
-          vpc_connector: 'main-app-connector' # Ensure staging has access to the VPC
-          image: ${{ needs.build-and-push.outputs.image_tag }}
-          secrets: |-
-            DATABASE_URL:LATEST
-            REDIS_URL:LATEST
-            SECRET_KEY:LATEST
-            GOOGLE_CLIENT_ID:LATEST
-            GOOGLE_CLIENT_SECRET:LATEST
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME_WEB }} \
+            --image=${{ needs.build-and-push.outputs.image_tag }} \
+            --region=${{ env.REGION }} \
+            --service-account=${{ env.API_SA_EMAIL }} \
+            --min-instances=0 \
+            --vpc-connector=main-app-connector \
+            --set-secrets=DATABASE_URL=DATABASE_URL:LATEST,REDIS_URL=REDIS_URL:LATEST,SECRET_KEY=SECRET_KEY:LATEST,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:LATEST,GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:LATEST \
+            --allow-unauthenticated
+          
+          # Output the service URL for environment deployment
+          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME_WEB }} --region=${{ env.REGION }} --format="value(status.url)")
+          echo "url=$SERVICE_URL" >> $GITHUB_OUTPUT
 
       - name: Deploy Worker Service
         id: deploy-worker
-        uses: google-github-actions/deploy-cloudrun@v1
-        with:
-          service: ${{ env.SERVICE_NAME_WORKER }}
-          service_account: ${{ env.WORKER_SA_EMAIL }} # Specify the runtime identity
-          region: ${{ env.REGION }}
-          min_instances: 0
-          vpc_connector: 'main-app-connector'
-          image: ${{ needs.build-and-push.outputs.image_tag }}
-          no_traffic: true
-          container_command: "celery"
-          container_args: "-A,app.backend.tasks.celery_app,worker,--loglevel=info"
-          secrets: |-
-            DATABASE_URL:LATEST
-            REDIS_URL:LATEST
-            SECRET_KEY:LATEST
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME_WORKER }} \
+            --image=${{ needs.build-and-push.outputs.image_tag }} \
+            --region=${{ env.REGION }} \
+            --service-account=${{ env.WORKER_SA_EMAIL }} \
+            --min-instances=0 \
+            --vpc-connector=main-app-connector \
+            --no-allow-unauthenticated \
+            --no-traffic \
+            --command=celery \
+            --args="-A,app.backend.tasks.celery_app,worker,--loglevel=info" \
+            --set-secrets=DATABASE_URL=DATABASE_URL:LATEST,REDIS_URL=REDIS_URL:LATEST,SECRET_KEY=SECRET_KEY:LATEST
 
       - name: Show Deployed URLs
         run: |-

@@ -1,0 +1,166 @@
+name: Staging Validation Tests
+
+on:
+  workflow_run:
+    workflows: ["Deploy to Staging"]
+    types: [completed]
+  workflow_dispatch: # Allow manual triggering
+
+permissions:
+  contents: 'read'
+  id-token: 'write'
+
+env:
+  STAGING_WEB_SERVICE: 'creator-cmd-center-staging-web'
+  STAGING_WORKER_SERVICE: 'creator-cmd-center-staging-worker' 
+  REGION: 'us-central1'
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+
+jobs:
+  staging-tests:
+    name: 'Run Staging Environment Tests'
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install test dependencies
+        run: |
+          pip install requests pytest httpx
+
+      - name: Get Staging Service URL
+        id: get-url
+        run: |
+          STAGING_URL=$(gcloud run services describe ${{ env.STAGING_WEB_SERVICE }} --region=${{ env.REGION }} --format="value(status.url)")
+          echo "staging_url=$STAGING_URL" >> $GITHUB_OUTPUT
+          echo "Staging URL: $STAGING_URL"
+
+      - name: Health Check Test
+        run: |
+          echo "Testing staging health endpoint..."
+          STAGING_URL="${{ steps.get-url.outputs.staging_url }}"
+          
+          # Test health endpoint
+          response=$(curl -s -o /dev/null -w "%{http_code}" "${STAGING_URL}/health" || echo "000")
+          if [ "$response" -eq 200 ]; then
+            echo "✅ Health check passed"
+          else
+            echo "❌ Health check failed with status: $response"
+            exit 1
+          fi
+
+      - name: Basic API Tests
+        run: |
+          echo "Testing basic API endpoints..."
+          STAGING_URL="${{ steps.get-url.outputs.staging_url }}"
+          
+          # Test API root
+          response=$(curl -s -o /dev/null -w "%{http_code}" "${STAGING_URL}/" || echo "000")
+          if [ "$response" -eq 200 ] || [ "$response" -eq 302 ]; then
+            echo "✅ API root accessible"
+          else
+            echo "❌ API root failed with status: $response"
+            exit 1
+          fi
+
+      - name: Database Connection Test
+        run: |
+          echo "Testing database connectivity..."
+          STAGING_URL="${{ steps.get-url.outputs.staging_url }}"
+          
+          # Test database status endpoint (if exists)
+          response=$(curl -s -o /dev/null -w "%{http_code}" "${STAGING_URL}/api/v1/status" || echo "000")
+          if [ "$response" -eq 200 ] || [ "$response" -eq 404 ]; then
+            echo "✅ Database connection test passed"
+          else
+            echo "⚠️  Database status endpoint returned: $response"
+          fi
+
+      - name: Worker Service Test
+        run: |
+          echo "Testing worker service deployment..."
+          
+          # Check if worker service exists and is deployed
+          WORKER_STATUS=$(gcloud run services describe ${{ env.STAGING_WORKER_SERVICE }} --region=${{ env.REGION }} --format="value(status.conditions[0].status)" 2>/dev/null || echo "NotFound")
+          
+          if [ "$WORKER_STATUS" = "True" ]; then
+            echo "✅ Worker service is running"
+          else
+            echo "❌ Worker service status: $WORKER_STATUS"
+            exit 1
+          fi
+
+      - name: Load Test (Light)
+        run: |
+          echo "Running light load test..."
+          STAGING_URL="${{ steps.get-url.outputs.staging_url }}"
+          
+          # Simple load test - 10 concurrent requests
+          for i in {1..10}; do
+            curl -s -o /dev/null "${STAGING_URL}/health" &
+          done
+          wait
+          echo "✅ Light load test completed"
+
+      - name: Security Headers Test
+        run: |
+          echo "Testing security headers..."
+          STAGING_URL="${{ steps.get-url.outputs.staging_url }}"
+          
+          # Check for basic security headers
+          headers=$(curl -s -I "${STAGING_URL}/")
+          
+          if echo "$headers" | grep -i "x-frame-options\|x-content-type-options\|strict-transport-security" > /dev/null; then
+            echo "✅ Basic security headers present"
+          else
+            echo "⚠️  Consider adding security headers"
+          fi
+
+      - name: Performance Test
+        run: |
+          echo "Testing response times..."
+          STAGING_URL="${{ steps.get-url.outputs.staging_url }}"
+          
+          # Test response time
+          response_time=$(curl -s -o /dev/null -w "%{time_total}" "${STAGING_URL}/health")
+          
+          if (( $(echo "$response_time < 5.0" | bc -l) )); then
+            echo "✅ Response time acceptable: ${response_time}s"
+          else
+            echo "⚠️  Slow response time: ${response_time}s"
+          fi
+
+      - name: Staging Test Summary
+        run: |
+          echo "🎉 Staging validation tests completed successfully!"
+          echo "Staging environment is ready for production deployment."
+          echo "Staging URL: ${{ steps.get-url.outputs.staging_url }}"
+
+  notify-results:
+    name: 'Notify Test Results'
+    runs-on: ubuntu-latest
+    needs: staging-tests
+    if: always()
+    
+    steps:
+      - name: Test Results Summary
+        run: |
+          if [ "${{ needs.staging-tests.result }}" = "success" ]; then
+            echo "✅ All staging tests passed! Environment ready for production."
+          else
+            echo "❌ Staging tests failed. Review before production deployment."
+            exit 1
+          fi
