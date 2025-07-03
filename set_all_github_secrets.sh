@@ -5,6 +5,12 @@
 
 set -e
 
+# Check if user is logged into gh CLI
+if ! gh auth status &>/dev/null; then
+    echo "Error: You are not logged into the GitHub CLI. Please run 'gh auth login'."
+    exit 1
+fi
+
 REPO="laziestlarry/youtube-ai-platform"
 ENVIRONMENT=$1
 
