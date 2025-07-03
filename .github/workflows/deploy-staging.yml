@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging # Scope this job to the staging environment
     outputs:
-      image_tag: ${{ format('{0}-docker.pkg.dev/{1}/{2}/image:{3}', env.GAR_LOCATION, env.PROJECT_ID, env.GAR_REPO_NAME, github.sha) }}
+      image_tag: ${{ steps.set-image-tag.outputs.image_tag }}
 
     steps:
       - name: Checkout
@@ -53,6 +53,13 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPO_NAME }}/image:${{ github.sha }}
+
+      - name: Set Image Tag Output
+        id: set-image-tag
+        run: |
+          IMAGE_TAG="${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPO_NAME }}/image:${{ github.sha }}"
+          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "Image tag set to: $IMAGE_TAG"
 
   run-migrations:
     name: 'Run Database Migrations'
